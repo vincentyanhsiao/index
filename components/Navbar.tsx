@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, UserRole } from '../types';
-import { Search, User as UserIcon, LogOut, Heart, LayoutDashboard, Menu, X, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Menu, X, BarChart3, LogOut, Lock } from 'lucide-react';
 
 interface Props {
   user: User | null;
@@ -46,22 +45,14 @@ const Navbar: React.FC<Props> = ({ user, onLogout }) => {
           
           <div className="h-6 w-px bg-gray-200"></div>
 
-          {user ? (
+          {user && user.role === UserRole.ADMIN ? (
             <div className="flex items-center space-x-4">
-              {user.role === UserRole.ADMIN && (
-                <Link to="/admin" className="flex items-center space-x-1 text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-full transition">
-                  <LayoutDashboard size={18} />
-                  <span>管理后台</span>
-                </Link>
-              )}
-              {user.role === UserRole.MEMBER && (
-                <Link to="/favorites" className="flex items-center space-x-1 text-pink-600 hover:bg-pink-50 px-3 py-1.5 rounded-full transition">
-                  <Heart size={18} />
-                  <span>我的收藏</span>
-                </Link>
-              )}
+              <Link to="/admin" className="flex items-center space-x-1 text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-full transition">
+                <LayoutDashboard size={18} />
+                <span>管理后台</span>
+              </Link>
               <div className="flex items-center space-x-2 border-l pl-4 ml-2">
-                <span className="text-sm font-medium text-gray-700">{user.name}</span>
+                <span className="text-sm font-medium text-gray-700">管理员</span>
                 <button 
                   onClick={handleLogout}
                   className="p-2 text-gray-400 hover:text-red-500 transition"
@@ -73,8 +64,11 @@ const Navbar: React.FC<Props> = ({ user, onLogout }) => {
             </div>
           ) : (
             <div className="flex items-center space-x-3">
-              <Link to="/login" className="text-gray-600 hover:text-blue-600 px-4 py-2 font-medium">登录</Link>
-              <Link to="/register" className="bg-blue-600 text-white px-5 py-2 rounded-full font-medium hover:bg-blue-700 transition">注册</Link>
+               {/* 仅保留一个低调的后台登录入口 */}
+              <Link to="/login" className="flex items-center space-x-1 text-gray-400 hover:text-gray-600 text-sm font-medium">
+                <Lock size={14} />
+                <span>管理员入口</span>
+              </Link>
             </div>
           )}
         </div>
@@ -87,12 +81,9 @@ const Navbar: React.FC<Props> = ({ user, onLogout }) => {
           <Link to="/search" className="block text-gray-700 font-medium" onClick={() => setIsMenuOpen(false)}>数据查询</Link>
           <Link to="/index" className="block text-gray-700 font-medium" onClick={() => setIsMenuOpen(false)}>市场指数</Link>
           <hr />
-          {user ? (
+          {user && user.role === UserRole.ADMIN ? (
             <>
-              {user.role === UserRole.ADMIN && (
-                <Link to="/admin" className="block text-blue-600 font-medium" onClick={() => setIsMenuOpen(false)}>管理后台</Link>
-              )}
-              <Link to="/favorites" className="block text-pink-600 font-medium" onClick={() => setIsMenuOpen(false)}>我的收藏</Link>
+              <Link to="/admin" className="block text-blue-600 font-medium" onClick={() => setIsMenuOpen(false)}>管理后台</Link>
               <button 
                 onClick={() => { handleLogout(); setIsMenuOpen(false); }}
                 className="block text-red-500 font-medium w-full text-left"
@@ -101,10 +92,7 @@ const Navbar: React.FC<Props> = ({ user, onLogout }) => {
               </button>
             </>
           ) : (
-            <div className="grid grid-cols-2 gap-4">
-              <Link to="/login" className="text-center py-2 border rounded-lg font-medium" onClick={() => setIsMenuOpen(false)}>登录</Link>
-              <Link to="/register" className="text-center py-2 bg-blue-600 text-white rounded-lg font-medium" onClick={() => setIsMenuOpen(false)}>注册</Link>
-            </div>
+            <Link to="/login" className="block text-gray-400 text-sm" onClick={() => setIsMenuOpen(false)}>管理员登录</Link>
           )}
         </div>
       )}
