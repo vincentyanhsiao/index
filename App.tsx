@@ -1,6 +1,5 @@
-
-import React, { useState, useEffect, useMemo } from 'react';
-import { HashRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { User, UserRole, Artwork } from './types';
 import { INITIAL_ARTWORKS } from './data';
 import Navbar from './components/Navbar';
@@ -9,7 +8,6 @@ import SearchResults from './pages/SearchResults';
 import ArtworkDetail from './pages/ArtworkDetail';
 import Auth from './pages/Auth';
 import AdminDashboard from './pages/AdminDashboard';
-import MyFavorites from './pages/MyFavorites';
 import MarketIndex from './pages/MarketIndex';
 
 const STORAGE_KEYS = {
@@ -39,14 +37,6 @@ const App: React.FC = () => {
   const login = (user: User) => setCurrentUser(user);
   const logout = () => setCurrentUser(null);
   
-  const toggleFavorite = (artworkId: string) => {
-    if (!currentUser) return;
-    const newFavorites = currentUser.favorites.includes(artworkId)
-      ? currentUser.favorites.filter(id => id !== artworkId)
-      : [...currentUser.favorites, artworkId];
-    setCurrentUser({ ...currentUser, favorites: newFavorites });
-  };
-
   const updateArtwork = (updatedArtwork: Artwork) => {
     setArtworks(prev => prev.map(a => a.id === updatedArtwork.id ? updatedArtwork : a));
   };
@@ -70,22 +60,13 @@ const App: React.FC = () => {
             <Route path="/index" element={<MarketIndex artworks={artworks} />} />
             <Route 
               path="/artwork/:id" 
-              element={
-                <ArtworkDetail 
-                  artworks={artworks} 
-                  user={currentUser} 
-                  onToggleFavorite={toggleFavorite} 
-                />
-              } 
+              element={<ArtworkDetail artworks={artworks} />} 
             />
-            <Route path="/login" element={<Auth type="login" onAuthSuccess={login} />} />
-            <Route path="/register" element={<Auth type="register" onAuthSuccess={login} />} />
-            <Route 
-              path="/favorites" 
-              element={
-                currentUser ? <MyFavorites user={currentUser} artworks={artworks} /> : <Navigate to="/login" />
-              } 
-            />
+            {/* 只保留登录路由，移除注册 */}
+            <Route path="/login" element={<Auth onAuthSuccess={login} />} />
+            
+            {/* 移除 /register 和 /favorites 路由 */}
+            
             <Route 
               path="/admin/*" 
               element={
@@ -96,7 +77,7 @@ const App: React.FC = () => {
                       onDelete={deleteArtwork} 
                       onAdd={addArtwork}
                     /> 
-                  : <Navigate to="/" />
+                  : <Navigate to="/login" />
               } 
             />
           </Routes>
