@@ -1,16 +1,14 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Artwork, User, UserRole } from '../types';
-import { Heart, ArrowLeft, Share2, Printer, MapPin, Calendar, Clock, Maximize2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Artwork } from '../types';
+import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Props {
   artworks: Artwork[];
-  user: User | null;
-  onToggleFavorite: (id: string) => void;
+  // 移除 user 和 onToggleFavorite 属性
 }
 
-const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite }) => {
+const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const artwork = artworks.find(a => a.id === id);
@@ -26,17 +24,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite }) =>
       </div>
     );
   }
-
-  const isFavorited = user?.favorites.includes(artwork.id);
-
-  const handleFavorite = () => {
-    if (!user) {
-      alert('请登录会员后使用收藏功能');
-      navigate('/login');
-      return;
-    }
-    onToggleFavorite(artwork.id);
-  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 pb-20">
@@ -131,21 +118,11 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite }) =>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            <button 
-              onClick={handleFavorite}
-              className={`flex items-center justify-center space-x-2 py-4 rounded-xl font-bold transition-all ${
-                isFavorited 
-                  ? 'bg-pink-50 text-pink-600 border border-pink-200' 
-                  : 'bg-white border-2 border-gray-100 text-gray-700 hover:border-pink-200 hover:text-pink-600'
-              }`}
-            >
-              <Heart size={20} fill={isFavorited ? "currentColor" : "none"} />
-              <span>{isFavorited ? '已收藏' : '加入收藏'}</span>
-            </button>
-            <button className="flex items-center justify-center space-x-2 py-4 border-2 border-gray-100 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition">
+          {/* 移除了收藏按钮，只保留分享 */}
+          <div className="mb-8">
+            <button className="w-full flex items-center justify-center space-x-2 py-4 border-2 border-gray-100 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition">
               <Share2 size={20} />
-              <span>分享作品</span>
+              <span>分享此作品</span>
             </button>
           </div>
 
