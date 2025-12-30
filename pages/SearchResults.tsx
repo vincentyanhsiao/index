@@ -19,7 +19,7 @@ const SearchResults: React.FC<Props> = ({ artworks }) => {
   const [loading, setLoading] = useState(false);
   const [sortField, setSortField] = useState<SortField>('date');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 12; // 改为12个，配合4列布局更整齐
 
   // Simulate loading
   useEffect(() => {
@@ -65,7 +65,6 @@ const SearchResults: React.FC<Props> = ({ artworks }) => {
   const sortedArtworks = useMemo(() => {
     const list = [...filteredArtworks];
     
-    // Special rule: if searching for Auction House, fixed sort by date
     const isAuctionHouseSearch = query.toLowerCase().includes('保利') || query.toLowerCase().includes('嘉德') || query.toLowerCase().includes('拍卖');
     
     if (isAuctionHouseSearch) {
@@ -151,16 +150,15 @@ const SearchResults: React.FC<Props> = ({ artworks }) => {
         </div>
       ) : (
         <div className="space-y-12">
-          {/* 修改重点：
-             原代码是： <ArtworkCard key={art.id} ... />
-             新代码是： <Link key={art.id} ...> <ArtworkCard ... /> </Link>
+          {/* 修改：将 xl:grid-cols-5 改为 xl:grid-cols-4 
+             效果：卡片变宽，容纳更多信息，排版不拥挤
           */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {paginatedArtworks.map(art => (
               <Link 
                 key={art.id} 
                 to={`/artwork/${art.id}`} 
-                className="block group cursor-pointer" // 确保鼠标变成手型
+                className="block group cursor-pointer"
               >
                 <ArtworkCard artwork={art} />
               </Link>
