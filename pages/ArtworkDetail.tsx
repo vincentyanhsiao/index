@@ -205,39 +205,41 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
            ======================= */}
         <div className="flex flex-col">
           
-          {/* 1. 头部信息优化：标题在最上，艺术家和标签在下一行 */}
+          {/* 1. 头部信息优化：统一标签样式 */}
           <div className="mb-6">
-            <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-3 leading-tight">{artwork.title}</h1>
+            <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-4 leading-tight">{artwork.title}</h1>
             
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm lg:text-base">
-              {/* 艺术家 + 年份 */}
-              <div className="flex items-center space-x-2 mr-2">
-                 <div className="font-bold text-lg text-blue-600">
-                    <SearchLink keyword={artwork.artist}>
-                      {artwork.artist}
-                    </SearchLink>
-                 </div>
-                 {/* 显示创作年份 */}
-                 {artwork.creationYear && (
-                   <span className="text-gray-500">
-                     {artwork.creationYear}
-                   </span>
-                 )}
-              </div>
+            {/* 统一的标签容器：gap-2 保证间距一致 */}
+            <div className="flex flex-wrap items-center gap-2">
+              
+              {/* 标签1：艺术家 (带链接) */}
+              <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-200 transition">
+                <SearchLink keyword={artwork.artist}>
+                  {artwork.artist}
+                </SearchLink>
+              </span>
 
-              {/* 分类标签 */}
+              {/* 标签2：创作年份 (纯展示) */}
+              {artwork.creationYear && (
+                 <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
+                   {artwork.creationYear}
+                 </span>
+              )}
+
+              {/* 标签3：分类 (带链接) */}
               <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-200 transition">
                 <SearchLink keyword={artwork.category}>
                   {artwork.category}
                 </SearchLink>
               </span>
               
-              {/* 材质标签 */}
+              {/* 标签4：材质 (带链接) */}
               <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-200 transition">
                 <SearchLink keyword={artwork.material}>
                   {artwork.material}
                 </SearchLink>
               </span>
+
             </div>
           </div>
 
