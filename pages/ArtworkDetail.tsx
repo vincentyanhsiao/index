@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Artwork } from '../types';
 import ArtworkCard from '../components/ArtworkCard';
-import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, ArrowRight, Circle } from 'lucide-react';
 
 interface Props {
   artworks: Artwork[];
@@ -16,6 +16,13 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+
+  // ============================================================
+  // 核心优化：每次进入新页面（ID变化时），自动滚动到顶部
+  // ============================================================
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
 
   // ============================================================
   // SEO & OG Tags 动态设置
@@ -143,7 +150,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
 
       <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
         {/* =======================
-            左侧：优化后的图片轮播
+            左侧：图片轮播
            ======================= */}
         <div className="space-y-4 select-none">
           <div className="relative group aspect-square bg-gray-50 rounded-3xl overflow-hidden shadow-sm border border-gray-100">
@@ -155,7 +162,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
               onClick={() => setShowModal(true)}
             />
             
-            {/* 放大按钮 (右上角) */}
             <button 
               onClick={(e) => { e.stopPropagation(); setShowModal(true); }}
               className="absolute top-4 right-4 p-2.5 bg-black/5 backdrop-blur-sm rounded-full text-gray-600 hover:bg-black/10 transition"
@@ -164,7 +170,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
               <Maximize2 size={20} />
             </button>
 
-            {/* 左右切换箭头 (仅当有多张图时显示) */}
+            {/* 左右切换箭头 */}
             {artwork.images.length > 1 && (
               <>
                 <button 
@@ -229,9 +235,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
             <div className="flex items-baseline justify-between border-b border-gray-200 pb-4">
               <span className="text-gray-500 font-medium">拍卖成交价:</span>
               <div className="text-right">
-                {/* 👇 这里的 text-2xl lg:text-3xl 就是优化的地方：
-                   手机端用 text-2xl (更小)，电脑端用 text-3xl (更大) 
-                */}
                 <span className="text-2xl lg:text-3xl font-black text-red-600">¥ {artwork.hammerPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 <span className="block text-xs text-gray-400 mt-1">人民币 (RMB)</span>
               </div>
@@ -250,9 +253,8 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
             </div>
           </div>
 
-          {/* 3. 拍卖信息 */}
+          {/* 3. 拍卖信息 (已移除“来源出处”标题) */}
           <div className="mb-8 space-y-4">
-            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider text-opacity-50">来源出处</h3>
             <div className="bg-white rounded-xl border p-4 space-y-4 shadow-sm">
               <div className="flex items-start">
                 <div className="p-2 bg-blue-50 text-blue-600 rounded-lg mr-3 mt-0.5">
@@ -332,7 +334,10 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {relatedArtworks.map(art => (
-              <ArtworkCard key={art.id} artwork={art} />
+              // 修复：使用 Link 包裹 ArtworkCard，实现点击跳转
+              <Link key={art.id} to={`/artwork/${art.id}`} className="block group">
+                <ArtworkCard artwork={art} />
+              </Link>
             ))}
           </div>
         </div>
