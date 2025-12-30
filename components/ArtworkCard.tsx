@@ -23,8 +23,13 @@ const ArtworkCard: React.FC<Props> = ({ artwork }) => {
       {/* 2. 信息区域 */}
       <div className="p-5 flex-grow flex flex-col justify-between">
         <div>
-          {/* 修改排版：艺术家名称 + 创作时间 放在作品名称上方 (正面) */}
-          <div className="flex items-center mb-1.5 flex-wrap">
+          {/* 修改：作品名称放在最上方 */}
+          <h3 className="font-bold text-gray-900 line-clamp-2 mb-2 leading-snug text-base">
+            {artwork.title}
+          </h3>
+
+          {/* 修改：艺术家名称 + 创作时间 放在作品名称下面 */}
+          <div className="flex items-center mb-3 flex-wrap">
              <span className="text-blue-600 font-bold text-sm mr-2">
                {artwork.artist}
              </span>
@@ -35,12 +40,7 @@ const ArtworkCard: React.FC<Props> = ({ artwork }) => {
              )}
           </div>
 
-          {/* 作品名称 */}
-          <h3 className="font-bold text-gray-900 line-clamp-2 mb-3 leading-snug">
-            {artwork.title}
-          </h3>
-
-          {/* 价格 */}
+          {/* 价格区域 */}
           <div className="mb-4">
             <div className="flex items-baseline space-x-1">
                <span className="text-xs text-gray-500">成交价</span>
@@ -48,7 +48,7 @@ const ArtworkCard: React.FC<Props> = ({ artwork }) => {
                  ¥{artwork.hammerPrice.toLocaleString(undefined, { minimumFractionDigits: 0 })}
                </span>
             </div>
-            {/* 估价小字，增加信息丰富度 */}
+            {/* 估价小字 */}
             <div className="text-[10px] text-gray-400 mt-0.5">
                估价: {artwork.estimatedPriceMin.toLocaleString()} - {artwork.estimatedPriceMax.toLocaleString()}
             </div>
