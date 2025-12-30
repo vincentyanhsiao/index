@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { Artwork, SortField } from '../types';
 import SearchSection from '../components/SearchSection';
 import ArtworkCard from '../components/ArtworkCard';
@@ -38,7 +38,6 @@ const SearchResults: React.FC<Props> = ({ artworks }) => {
 
   // Filter Logic
   const filteredArtworks = useMemo(() => {
-    // 1. 先过滤掉草稿状态的数据，只显示已上架的
     const publishedArtworks = artworks.filter(art => art.status === 'PUBLISHED');
 
     if (!query.trim()) return publishedArtworks;
@@ -46,7 +45,6 @@ const SearchResults: React.FC<Props> = ({ artworks }) => {
     const searchTerms = query.toLowerCase().split(/\s+/);
     
     return publishedArtworks.filter(art => {
-      // ⚠️ 修复核心：这里加了 || '' 保护，防止因字段缺失导致页面崩溃
       const fields = [
         art.title, 
         art.artist, 
@@ -153,9 +151,19 @@ const SearchResults: React.FC<Props> = ({ artworks }) => {
         </div>
       ) : (
         <div className="space-y-12">
+          {/* 修改重点：
+             原代码是： <ArtworkCard key={art.id} ... />
+             新代码是： <Link key={art.id} ...> <ArtworkCard ... /> </Link>
+          */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {paginatedArtworks.map(art => (
-              <ArtworkCard key={art.id} artwork={art} />
+              <Link 
+                key={art.id} 
+                to={`/artwork/${art.id}`} 
+                className="block group cursor-pointer" // 确保鼠标变成手型
+              >
+                <ArtworkCard artwork={art} />
+              </Link>
             ))}
           </div>
 
