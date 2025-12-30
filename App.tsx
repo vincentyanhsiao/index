@@ -83,7 +83,7 @@ const App: React.FC = () => {
           </Routes>
         </main>
         <footer className="bg-white border-t py-8 text-center text-gray-500 text-sm">
-          <p>© 2024 ArtsyAuction 艺术品交易查询系统. All rights reserved.</p>
+          <p>© 2026 FUHUNG ART INDEX 艺术品交易数据查询系统. All rights reserved.</p>
         </footer>
       </div>
     </HashRouter>
