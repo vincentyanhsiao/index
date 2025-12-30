@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Artwork } from '../types';
 import { Plus, Search, Edit3, Trash2, CheckCircle, AlertCircle, Eye, Image as ImageIcon } from 'lucide-react';
@@ -52,12 +51,19 @@ const AdminDashboard: React.FC<Props> = ({ artworks, onUpdate, onDelete, onAdd }
         id: Math.random().toString(36).substr(2, 9),
         images: formData.images || [formData.thumbnail!],
         createdAt: new Date().toISOString(),
-        status: formData.status || 'PUBLISHED'
+        status: formData.status || 'PUBLISHED',
+        // ⚠️ 修复：给拍卖专场设置默认空值，防止数据损坏
+        auctionSession: formData.auctionSession || '' 
       };
       onAdd(newArt);
       setIsAdding(false);
     } else if (editingId) {
-      onUpdate(formData as Artwork);
+      // ⚠️ 修复：编辑时也确保字段完整
+      const updatedArt = {
+        ...formData,
+        auctionSession: formData.auctionSession || ''
+      } as Artwork;
+      onUpdate(updatedArt);
       setEditingId(null);
     }
     setFormData({});
@@ -68,7 +74,7 @@ const AdminDashboard: React.FC<Props> = ({ artworks, onUpdate, onDelete, onAdd }
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">数据管理后台</h1>
-          <p className="text-gray-500">当前共有 {artworks.length} 件艺术品数据，会员注册数：1,280</p>
+          <p className="text-gray-500">当前共有 {artworks.length} 件艺术品数据</p>
         </div>
         <button 
           onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ status: 'PUBLISHED' }); }}
@@ -210,6 +216,17 @@ const AdminDashboard: React.FC<Props> = ({ artworks, onUpdate, onDelete, onAdd }
                     className="w-full px-3 py-2 border rounded-lg" 
                     value={formData.auctionHouse || ''} 
                     onChange={e => setFormData({...formData, auctionHouse: e.target.value})}
+                  />
+                </div>
+
+                {/* ⚠️ 修复：补上了之前缺失的“拍卖专场”输入框 */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500">拍卖专场</label>
+                  <input 
+                    className="w-full px-3 py-2 border rounded-lg" 
+                    placeholder="例如：现当代艺术夜场"
+                    value={formData.auctionSession || ''} 
+                    onChange={e => setFormData({...formData, auctionSession: e.target.value})}
                   />
                 </div>
 
