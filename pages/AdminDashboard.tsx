@@ -38,19 +38,18 @@ const AdminDashboard: React.FC<Props> = ({ artworks, onUpdate, onDelete, onAdd }
       return;
     }
 
-    // 构造完整的艺术品对象，确保所有字段都有默认值
     const safeData = {
       ...formData,
       auctionSession: formData.auctionSession || '',
       description: formData.description || '',
       material: formData.material || '',
       dimensions: formData.dimensions || '',
+      creationYear: formData.creationYear || '', // 新增：保存创作年份
       auctionTime: formData.auctionTime || '',
       status: formData.status || 'PUBLISHED',
     };
 
     if (isAdding) {
-      // Check for duplicates
       const exists = artworks.find(a => a.title === safeData.title && a.artist === safeData.artist);
       if (exists) {
         alert('该作品已有发布记录，请勿重复发布');
@@ -60,7 +59,7 @@ const AdminDashboard: React.FC<Props> = ({ artworks, onUpdate, onDelete, onAdd }
       const newArt: Artwork = {
         ...(safeData as Artwork),
         id: Math.random().toString(36).substr(2, 9),
-        images: formData.images || [formData.thumbnail!], // 如果没有多图，默认用主图填充相册
+        images: formData.images || [formData.thumbnail!],
         createdAt: new Date().toISOString(),
       };
       onAdd(newArt);
@@ -89,7 +88,7 @@ const AdminDashboard: React.FC<Props> = ({ artworks, onUpdate, onDelete, onAdd }
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
-        {/* 左侧：列表视图 */}
+        {/* List View */}
         <div className="lg:col-span-2 space-y-4">
           <div className="relative mb-6">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -120,7 +119,7 @@ const AdminDashboard: React.FC<Props> = ({ artworks, onUpdate, onDelete, onAdd }
                         <img src={art.thumbnail} className="w-12 h-12 rounded object-cover" />
                         <div>
                           <div className="font-bold text-gray-900">{art.title}</div>
-                          <div className="text-gray-500 text-xs">{art.artist} | {art.category}</div>
+                          <div className="text-gray-500 text-xs">{art.artist} | {art.creationYear || '-'}</div>
                         </div>
                       </div>
                     </td>
@@ -148,7 +147,7 @@ const AdminDashboard: React.FC<Props> = ({ artworks, onUpdate, onDelete, onAdd }
           </div>
         </div>
 
-        {/* 右侧：编辑/新增表单 */}
+        {/* Edit/Add Form */}
         <div className="lg:col-span-1">
           {(isAdding || editingId) ? (
             <div className="bg-white rounded-2xl border p-6 shadow-lg sticky top-24 space-y-4 animate-in slide-in-from-right">
@@ -172,18 +171,28 @@ const AdminDashboard: React.FC<Props> = ({ artworks, onUpdate, onDelete, onAdd }
                       onChange={e => setFormData({...formData, artist: e.target.value})}
                     />
                   </div>
+                  {/* 新增：创作年份录入框 */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500">作品分类 *</label>
+                    <label className="text-xs font-bold text-gray-500">创作年份</label>
                     <input 
                       className="w-full px-3 py-2 border rounded-lg" 
-                      placeholder="如：中国书画"
-                      value={formData.category || ''} 
-                      onChange={e => setFormData({...formData, category: e.target.value})}
+                      placeholder="如：1998年作"
+                      value={formData.creationYear || ''} 
+                      onChange={e => setFormData({...formData, creationYear: e.target.value})}
                     />
                   </div>
                 </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500">作品分类 *</label>
+                  <input 
+                    className="w-full px-3 py-2 border rounded-lg" 
+                    placeholder="如：中国书画"
+                    value={formData.category || ''} 
+                    onChange={e => setFormData({...formData, category: e.target.value})}
+                  />
+                </div>
                 
-                {/* 新增：材质和尺寸 */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-gray-500">材质</label>
@@ -265,7 +274,6 @@ const AdminDashboard: React.FC<Props> = ({ artworks, onUpdate, onDelete, onAdd }
                       onChange={e => setFormData({...formData, auctionDate: e.target.value})}
                     />
                   </div>
-                   {/* 新增：具体时间 */}
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-gray-500">具体时间</label>
                     <input 
@@ -304,7 +312,6 @@ const AdminDashboard: React.FC<Props> = ({ artworks, onUpdate, onDelete, onAdd }
                   </div>
                 </div>
 
-                {/* 新增：作品介绍文本域 */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-500">作品介绍</label>
                   <textarea 
