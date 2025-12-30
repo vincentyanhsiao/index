@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Artwork } from '../types';
 import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Props {
   artworks: Artwork[];
-  // 移除 user 和 onToggleFavorite 属性
 }
 
 const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
@@ -24,6 +23,17 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
       </div>
     );
   }
+
+  // 辅助函数：生成带样式的搜索链接
+  const SearchLink = ({ keyword, className, children }: { keyword: string, className?: string, children: React.ReactNode }) => (
+    <Link 
+      to={`/search?q=${encodeURIComponent(keyword)}`}
+      className={`hover:text-blue-600 hover:underline transition-colors cursor-pointer ${className || ''}`}
+      onClick={(e) => e.stopPropagation()} // 防止冒泡
+    >
+      {children}
+    </Link>
+  );
 
   return (
     <div className="max-w-6xl mx-auto px-4 pb-20">
@@ -87,12 +97,28 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
         {/* Info Section */}
         <div className="flex flex-col">
           <div className="mb-6">
-            <div className="text-blue-600 font-bold mb-1">{artwork.artist}</div>
+            {/* 1. 艺术家链接 */}
+            <div className="text-blue-600 font-bold mb-1 text-lg">
+              <SearchLink keyword={artwork.artist}>
+                {artwork.artist}
+              </SearchLink>
+            </div>
+            
             <h1 className="text-3xl font-extrabold text-gray-900 mb-4">{artwork.title}</h1>
             
             <div className="flex flex-wrap gap-2">
-              <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">{artwork.category}</span>
-              <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">{artwork.material}</span>
+              {/* 2. 分类链接 */}
+              <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
+                <SearchLink keyword={artwork.category}>
+                  {artwork.category}
+                </SearchLink>
+              </span>
+              {/* 3. 材质链接 */}
+              <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
+                <SearchLink keyword={artwork.material}>
+                  {artwork.material}
+                </SearchLink>
+              </span>
             </div>
           </div>
 
@@ -118,7 +144,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
             </div>
           </div>
 
-          {/* 移除了收藏按钮，只保留分享 */}
           <div className="mb-8">
             <button className="w-full flex items-center justify-center space-x-2 py-4 border-2 border-gray-100 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition">
               <Share2 size={20} />
@@ -135,8 +160,18 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
                 </div>
                 <div>
                   <div className="text-sm text-gray-400">拍卖行 / 拍卖会</div>
-                  <div className="font-bold text-gray-900">{artwork.auctionHouse}</div>
-                  <div className="text-sm text-gray-600">{artwork.auctionSession}</div>
+                  {/* 4. 拍卖行链接 */}
+                  <div className="font-bold text-gray-900">
+                    <SearchLink keyword={artwork.auctionHouse}>
+                      {artwork.auctionHouse}
+                    </SearchLink>
+                  </div>
+                  {/* 5. 拍卖专场链接 */}
+                  <div className="text-sm text-gray-600 mt-0.5">
+                    <SearchLink keyword={artwork.auctionSession}>
+                      {artwork.auctionSession}
+                    </SearchLink>
+                  </div>
                 </div>
               </div>
 
@@ -157,8 +192,9 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
       {/* Description */}
       <div className="mt-16 bg-white rounded-3xl p-8 lg:p-12 shadow-sm border border-gray-100">
         <h3 className="text-2xl font-bold mb-6 pb-4 border-b">作品介绍</h3>
-        <div className="prose prose-blue max-w-none text-gray-600 leading-loose">
-          <p>{artwork.description}</p>
+        {/* 修复：添加 whitespace-pre-wrap 样式，保留录入时的换行和格式 */}
+        <div className="prose prose-blue max-w-none text-gray-600 leading-loose whitespace-pre-wrap font-normal">
+          {artwork.description}
         </div>
       </div>
 
