@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Artwork, SortField } from '../types';
@@ -39,12 +38,22 @@ const SearchResults: React.FC<Props> = ({ artworks }) => {
 
   // Filter Logic
   const filteredArtworks = useMemo(() => {
-    if (!query.trim()) return artworks;
+    // 1. 先过滤掉草稿状态的数据，只显示已上架的
+    const publishedArtworks = artworks.filter(art => art.status === 'PUBLISHED');
+
+    if (!query.trim()) return publishedArtworks;
 
     const searchTerms = query.toLowerCase().split(/\s+/);
     
-    return artworks.filter(art => {
-      const fields = [art.title, art.artist, art.category, art.auctionHouse, art.auctionSession].map(f => f.toLowerCase());
+    return publishedArtworks.filter(art => {
+      // ⚠️ 修复核心：这里加了 || '' 保护，防止因字段缺失导致页面崩溃
+      const fields = [
+        art.title, 
+        art.artist, 
+        art.category, 
+        art.auctionHouse, 
+        art.auctionSession || '' 
+      ].map(f => (f || '').toLowerCase());
       
       if (exact) {
         return searchTerms.some(term => fields.some(f => f === term));
