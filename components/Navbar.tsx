@@ -25,7 +25,7 @@ const Navbar: React.FC<Props> = ({ user, onLogout }) => {
             <span className="text-white font-bold text-xl">A</span>
           </div>
           <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 hidden sm:inline">
-            ArtsyAuction
+            FUHUNG ART INDEX
           </span>
         </Link>
 
