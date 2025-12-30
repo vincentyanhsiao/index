@@ -1,8 +1,5 @@
-
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { Artwork } from '../types';
-import { Calendar, Tag, ChevronRight } from 'lucide-react';
 
 interface Props {
   artwork: Artwork;
@@ -10,47 +7,58 @@ interface Props {
 
 const ArtworkCard: React.FC<Props> = ({ artwork }) => {
   return (
-    <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all group flex flex-col h-full">
-      <div className="relative aspect-[4/3] overflow-hidden">
+    <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full flex flex-col">
+      {/* 1. 图片区域 */}
+      <div className="aspect-[4/3] bg-gray-50 relative overflow-hidden">
         <img 
           src={artwork.thumbnail} 
           alt={artwork.title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          loading="lazy"
+          className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-500"
         />
-        <div className="absolute top-3 left-3 px-2 py-1 bg-black/60 backdrop-blur-md text-white text-xs rounded-md">
+        <div className="absolute top-2 right-2 px-2 py-1 bg-black/60 backdrop-blur rounded text-white text-[10px] font-medium">
           {artwork.category}
         </div>
       </div>
-      
-      <div className="p-5 flex-grow flex flex-col">
-        <div className="mb-1 text-sm font-medium text-blue-600">{artwork.artist}</div>
-        <h3 className="text-lg font-bold text-gray-900 mb-4 line-clamp-1">{artwork.title}</h3>
-        
-        <div className="space-y-2 mb-6">
-          <div className="flex items-center text-gray-500 text-xs">
-            <Calendar size={14} className="mr-1.5" />
-            <span>成交日期：{artwork.auctionDate}</span>
+
+      {/* 2. 信息区域 */}
+      <div className="p-5 flex-grow flex flex-col justify-between">
+        <div>
+          {/* 修改排版：艺术家名称 + 创作时间 放在作品名称上方 (正面) */}
+          <div className="flex items-center mb-1.5 flex-wrap">
+             <span className="text-blue-600 font-bold text-sm mr-2">
+               {artwork.artist}
+             </span>
+             {artwork.creationYear && (
+               <span className="text-gray-400 text-xs font-medium">
+                 {artwork.creationYear}
+               </span>
+             )}
           </div>
-          <div className="flex items-center text-gray-500 text-xs">
-            <Tag size={14} className="mr-1.5" />
-            <span className="truncate">拍卖行：{artwork.auctionHouse}</span>
+
+          {/* 作品名称 */}
+          <h3 className="font-bold text-gray-900 line-clamp-2 mb-3 leading-snug">
+            {artwork.title}
+          </h3>
+
+          {/* 价格 */}
+          <div className="mb-4">
+            <div className="flex items-baseline space-x-1">
+               <span className="text-xs text-gray-500">成交价</span>
+               <span className="text-lg font-black text-red-600">
+                 ¥{artwork.hammerPrice.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+               </span>
+            </div>
+            {/* 估价小字，增加信息丰富度 */}
+            <div className="text-[10px] text-gray-400 mt-0.5">
+               估价: {artwork.estimatedPriceMin.toLocaleString()} - {artwork.estimatedPriceMax.toLocaleString()}
+            </div>
           </div>
         </div>
-
-        <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between">
-          <div>
-            <span className="text-gray-400 text-xs block">成交价</span>
-            <span className="text-xl font-bold text-red-600">
-              ¥ {artwork.hammerPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </span>
-          </div>
-          <Link 
-            to={`/artwork/${artwork.id}`}
-            className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-all"
-          >
-            <ChevronRight size={20} />
-          </Link>
+        
+        {/* 底部拍卖信息 */}
+        <div className="pt-3 border-t border-gray-50 text-xs text-gray-400 flex justify-between items-center">
+          <span className="truncate max-w-[60%]">{artwork.auctionHouse}</span>
+          <span>{artwork.auctionDate}</span>
         </div>
       </div>
     </div>
