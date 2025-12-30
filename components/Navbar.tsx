@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, UserRole } from '../types';
-import { LayoutDashboard, Menu, X, BarChart3, LogOut, Lock } from 'lucide-react';
+import { LayoutDashboard, Menu, X, BarChart3, LogOut } from 'lucide-react';
 
 interface Props {
   user: User | null;
@@ -43,34 +43,30 @@ const Navbar: React.FC<Props> = ({ user, onLogout }) => {
             <span>市场指数</span>
           </Link>
           
-          <div className="h-6 w-px bg-gray-200"></div>
-
-          {user && user.role === UserRole.ADMIN ? (
-            <div className="flex items-center space-x-4">
-              <Link to="/admin" className="flex items-center space-x-1 text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-full transition">
-                <LayoutDashboard size={18} />
-                <span>管理后台</span>
-              </Link>
-              <div className="flex items-center space-x-2 border-l pl-4 ml-2">
-                <span className="text-sm font-medium text-gray-700">管理员</span>
-                <button 
-                  onClick={handleLogout}
-                  className="p-2 text-gray-400 hover:text-red-500 transition"
-                  title="退出登录"
-                >
-                  <LogOut size={20} />
-                </button>
+          {/* 只有当管理员登录后，才会显示后台管理和退出按钮 */}
+          {user && user.role === UserRole.ADMIN && (
+            <>
+              <div className="h-6 w-px bg-gray-200"></div>
+              <div className="flex items-center space-x-4">
+                <Link to="/admin" className="flex items-center space-x-1 text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-full transition">
+                  <LayoutDashboard size={18} />
+                  <span>管理后台</span>
+                </Link>
+                <div className="flex items-center space-x-2 border-l pl-4 ml-2">
+                  <span className="text-sm font-medium text-gray-700">管理员</span>
+                  <button 
+                    onClick={handleLogout}
+                    className="p-2 text-gray-400 hover:text-red-500 transition"
+                    title="退出登录"
+                  >
+                    <LogOut size={20} />
+                  </button>
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-3">
-               {/* 仅保留一个低调的后台登录入口 */}
-              <Link to="/login" className="flex items-center space-x-1 text-gray-400 hover:text-gray-600 text-sm font-medium">
-                <Lock size={14} />
-                <span>管理员入口</span>
-              </Link>
-            </div>
+            </>
           )}
+          
+          {/* 如果未登录，这里什么都不渲染，也就是界面上什么都不显示 */}
         </div>
       </div>
 
@@ -80,9 +76,10 @@ const Navbar: React.FC<Props> = ({ user, onLogout }) => {
           <Link to="/" className="block text-gray-700 font-medium" onClick={() => setIsMenuOpen(false)}>首页</Link>
           <Link to="/search" className="block text-gray-700 font-medium" onClick={() => setIsMenuOpen(false)}>数据查询</Link>
           <Link to="/index" className="block text-gray-700 font-medium" onClick={() => setIsMenuOpen(false)}>市场指数</Link>
-          <hr />
-          {user && user.role === UserRole.ADMIN ? (
+          
+          {user && user.role === UserRole.ADMIN && (
             <>
+              <hr />
               <Link to="/admin" className="block text-blue-600 font-medium" onClick={() => setIsMenuOpen(false)}>管理后台</Link>
               <button 
                 onClick={() => { handleLogout(); setIsMenuOpen(false); }}
@@ -91,8 +88,6 @@ const Navbar: React.FC<Props> = ({ user, onLogout }) => {
                 退出登录
               </button>
             </>
-          ) : (
-            <Link to="/login" className="block text-gray-400 text-sm" onClick={() => setIsMenuOpen(false)}>管理员登录</Link>
           )}
         </div>
       )}
