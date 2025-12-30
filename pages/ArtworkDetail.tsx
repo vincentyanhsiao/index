@@ -18,14 +18,14 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
   const [isCopied, setIsCopied] = useState(false);
 
   // ============================================================
-  // 核心优化：每次进入新页面（ID变化时），自动滚动到顶部
+  // 滚动到顶部
   // ============================================================
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [id]);
 
   // ============================================================
-  // SEO & OG Tags 动态设置
+  // SEO & OG Tags
   // ============================================================
   useEffect(() => {
     if (!artwork) return;
@@ -154,7 +154,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
            ======================= */}
         <div className="space-y-4 select-none">
           <div className="relative group aspect-square bg-gray-50 rounded-3xl overflow-hidden shadow-sm border border-gray-100">
-            {/* 主图 */}
             <img 
               src={artwork.images[activeImageIdx]} 
               alt={artwork.title}
@@ -170,7 +169,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
               <Maximize2 size={20} />
             </button>
 
-            {/* 左右切换箭头 */}
             {artwork.images.length > 1 && (
               <>
                 <button 
@@ -186,7 +184,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
                   <ChevronRight size={24} />
                 </button>
 
-                {/* 底部圆点指示器 */}
                 <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2">
                   {artwork.images.map((_, idx) => (
                     <button
@@ -207,21 +204,35 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
             右侧：信息区域
            ======================= */}
         <div className="flex flex-col">
-          {/* 1. 头部信息 */}
+          
+          {/* 1. 头部信息优化：标题在最上，艺术家和标签在下一行 */}
           <div className="mb-6">
-            <div className="text-blue-600 font-bold mb-2 text-lg">
-              <SearchLink keyword={artwork.artist}>
-                {artwork.artist}
-              </SearchLink>
-            </div>
-            <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-4 leading-tight">{artwork.title}</h1>
+            <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-3 leading-tight">{artwork.title}</h1>
             
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm lg:text-base">
+              {/* 艺术家 + 年份 */}
+              <div className="flex items-center space-x-2 mr-2">
+                 <div className="font-bold text-lg text-blue-600">
+                    <SearchLink keyword={artwork.artist}>
+                      {artwork.artist}
+                    </SearchLink>
+                 </div>
+                 {/* 显示创作年份 */}
+                 {artwork.creationYear && (
+                   <span className="text-gray-500">
+                     {artwork.creationYear}
+                   </span>
+                 )}
+              </div>
+
+              {/* 分类标签 */}
               <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-200 transition">
                 <SearchLink keyword={artwork.category}>
                   {artwork.category}
                 </SearchLink>
               </span>
+              
+              {/* 材质标签 */}
               <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-200 transition">
                 <SearchLink keyword={artwork.material}>
                   {artwork.material}
@@ -253,7 +264,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
             </div>
           </div>
 
-          {/* 3. 拍卖信息 (已移除“来源出处”标题) */}
+          {/* 3. 拍卖信息 */}
           <div className="mb-8 space-y-4">
             <div className="bg-white rounded-xl border p-4 space-y-4 shadow-sm">
               <div className="flex items-start">
@@ -334,7 +345,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {relatedArtworks.map(art => (
-              // 修复：使用 Link 包裹 ArtworkCard，实现点击跳转
               <Link key={art.id} to={`/artwork/${art.id}`} className="block group">
                 <ArtworkCard artwork={art} />
               </Link>
