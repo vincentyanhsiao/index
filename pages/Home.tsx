@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Artwork } from '../types';
 import SearchSection from '../components/SearchSection';
 import ArtworkCard from '../components/ArtworkCard';
@@ -16,6 +16,7 @@ const Home: React.FC<Props> = ({ artworks }) => {
     navigate(`/search?q=${encodeURIComponent(keyword)}${isExact ? '&exact=true' : ''}`);
   };
 
+  // 获取最新的 4 条数据用于展示
   const trendingArtworks = artworks.slice(0, 4);
 
   return (
@@ -26,14 +27,14 @@ const Home: React.FC<Props> = ({ artworks }) => {
           挖掘艺术品的 <span className="text-blue-600">真实价值</span>
         </h1>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-10 px-4">
-          免费且专业的艺术品交易数据查询平台，助您精准把握市场脉搏。
+          专业的艺术品交易数据查询平台，免费开放数万条海内外拍卖行历史记录，助您精准把握市场脉搏。
         </p>
         <div className="px-4">
           <SearchSection onSearch={handleSearch} />
         </div>
       </section>
 
-      {/* Features - 移除了会员专享，替换为极速响应 */}
+      {/* Features */}
       <section className="grid md:grid-cols-4 gap-8 px-4">
         {[
           { icon: <Search className="text-blue-600" />, title: '多维搜索', desc: '支持艺术家、作品名、拍卖行多维度模糊及精准查询' },
@@ -59,7 +60,10 @@ const Home: React.FC<Props> = ({ artworks }) => {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
           {trendingArtworks.map(artwork => (
-            <ArtworkCard key={artwork.id} artwork={artwork} />
+            // 修改重点：添加 Link 包裹，实现点击跳转详情页
+            <Link key={artwork.id} to={`/artwork/${artwork.id}`} className="block group">
+              <ArtworkCard artwork={artwork} />
+            </Link>
           ))}
         </div>
       </section>
