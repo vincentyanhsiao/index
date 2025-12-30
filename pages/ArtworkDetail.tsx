@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Artwork } from '../types';
 import ArtworkCard from '../components/ArtworkCard';
-import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, Copy } from 'lucide-react';
+import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, ArrowRight } from 'lucide-react';
 
 interface Props {
   artworks: Artwork[];
@@ -26,22 +26,26 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
       a.artist === artwork.artist && a.id !== artwork.id
     );
     
-    // 如果有同艺术家的作品，直接返回（最多显示4个）
     if (sameArtist.length > 0) {
       return sameArtist.slice(0, 4);
     }
 
     // 策略2: 如果没有同艺术家作品，查找同场拍卖会的作品
-    // 匹配条件：同拍卖行 + 同专场名 + 排除当前作品
     const sameSession = artworks.filter(a => 
       a.auctionHouse === artwork.auctionHouse &&
-      a.auctionSession === artwork.auctionSession && // 允许专场为空的情况匹配
+      a.auctionSession === artwork.auctionSession && 
       a.id !== artwork.id
     );
 
     return sameSession.slice(0, 4);
 
   }, [artwork, artworks]);
+
+  // 判断当前推荐的是哪种类型，用于生成“查看更多”的链接
+  const isSameArtistRecommendation = useMemo(() => {
+    if (!relatedArtworks.length || !artwork) return false;
+    return relatedArtworks[0].artist === artwork.artist;
+  }, [relatedArtworks, artwork]);
 
   if (!artwork) {
     return (
@@ -250,14 +254,24 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
         </div>
       </div>
 
-      {/* Related Artworks Section (New) */}
+      {/* Related Artworks Section */}
       {relatedArtworks.length > 0 && (
         <div className="mt-12">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-2xl font-bold text-gray-900">相关作品</h3>
-            <span className="text-sm text-gray-400">
-               {relatedArtworks[0].artist === artwork.artist ? '更多该艺术家作品' : '同场拍卖会其他作品'}
-            </span>
+            
+            {/* 核心修改：动态链接跳转 */}
+            <Link 
+              to={
+                isSameArtistRecommendation 
+                  ? `/search?q=${encodeURIComponent(artwork.artist)}` 
+                  : `/search?q=${encodeURIComponent(artwork.auctionHouse + ' ' + artwork.auctionSession)}`
+              }
+              className="group flex items-center space-x-1 text-sm text-blue-600 font-medium hover:text-blue-700 transition"
+            >
+              <span>查看更多</span>
+              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {relatedArtworks.map(art => (
