@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Artwork } from '../types';
 import SearchSection from '../components/SearchSection';
 import ArtworkCard from '../components/ArtworkCard';
-import { TrendingUp, ShieldCheck, Search, Users } from 'lucide-react';
+import { TrendingUp, ShieldCheck, Search, Zap } from 'lucide-react';
 
 interface Props {
   artworks: Artwork[];
@@ -27,20 +26,20 @@ const Home: React.FC<Props> = ({ artworks }) => {
           挖掘艺术品的 <span className="text-blue-600">真实价值</span>
         </h1>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-10 px-4">
-          专业的艺术品交易数据查询平台，收录数万条海内外拍卖行历史记录，助您精准把握市场脉搏。
+          专业的艺术品交易数据查询平台，免费开放数万条海内外拍卖行历史记录，助您精准把握市场脉搏。
         </p>
         <div className="px-4">
           <SearchSection onSearch={handleSearch} />
         </div>
       </section>
 
-      {/* Features */}
+      {/* Features - 移除了会员专享，替换为极速响应 */}
       <section className="grid md:grid-cols-4 gap-8 px-4">
         {[
           { icon: <Search className="text-blue-600" />, title: '多维搜索', desc: '支持艺术家、作品名、拍卖行多维度模糊及精准查询' },
           { icon: <TrendingUp className="text-green-600" />, title: '行情趋势', desc: '实时更新拍卖成交价，掌握作品市场价格走势' },
           { icon: <ShieldCheck className="text-purple-600" />, title: '权威认证', desc: '数据来源于全球主流拍卖行，确保真实有效' },
-          { icon: <Users className="text-orange-600" />, title: '会员专享', desc: '注册即享个人收藏夹功能，同步追踪心仪佳作' },
+          { icon: <Zap className="text-orange-600" />, title: '完全免费', desc: '无需注册登录，即刻查询所有历史成交数据' },
         ].map((feature, idx) => (
           <div key={idx} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition">
             <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center mb-4">
