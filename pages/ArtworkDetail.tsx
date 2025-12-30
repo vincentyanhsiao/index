@@ -1,0 +1,208 @@
+
+import React, { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Artwork, User, UserRole } from '../types';
+import { Heart, ArrowLeft, Share2, Printer, MapPin, Calendar, Clock, Maximize2, ChevronLeft, ChevronRight } from 'lucide-react';
+
+interface Props {
+  artworks: Artwork[];
+  user: User | null;
+  onToggleFavorite: (id: string) => void;
+}
+
+const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite }) => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const artwork = artworks.find(a => a.id === id);
+
+  const [activeImageIdx, setActiveImageIdx] = useState(0);
+  const [showModal, setShowModal] = useState(false);
+
+  if (!artwork) {
+    return (
+      <div className="text-center py-20">
+        <h2 className="text-2xl font-bold text-gray-600">作品不存在</h2>
+        <button onClick={() => navigate(-1)} className="mt-4 text-blue-600">返回上一页</button>
+      </div>
+    );
+  }
+
+  const isFavorited = user?.favorites.includes(artwork.id);
+
+  const handleFavorite = () => {
+    if (!user) {
+      alert('请登录会员后使用收藏功能');
+      navigate('/login');
+      return;
+    }
+    onToggleFavorite(artwork.id);
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 pb-20">
+      <button 
+        onClick={() => navigate(-1)}
+        className="flex items-center text-gray-500 hover:text-blue-600 mb-8 transition"
+      >
+        <ArrowLeft size={20} className="mr-2" /> 返回
+      </button>
+
+      <div className="grid lg:grid-cols-2 gap-12">
+        {/* Gallery Section */}
+        <div className="space-y-4">
+          <div className="relative group aspect-square rounded-2xl overflow-hidden bg-white shadow-lg">
+            <img 
+              src={artwork.images[activeImageIdx]} 
+              alt={artwork.title}
+              className="w-full h-full object-contain cursor-zoom-in"
+              onClick={() => setShowModal(true)}
+            />
+            <button 
+              onClick={() => setShowModal(true)}
+              className="absolute bottom-4 right-4 p-3 bg-white/80 backdrop-blur rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Maximize2 size={20} />
+            </button>
+            
+            {artwork.images.length > 1 && (
+              <>
+                <button 
+                  onClick={() => setActiveImageIdx(prev => (prev > 0 ? prev - 1 : artwork.images.length - 1))}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/60 rounded-full hover:bg-white"
+                >
+                  <ChevronLeft size={24} />
+                </button>
+                <button 
+                  onClick={() => setActiveImageIdx(prev => (prev < artwork.images.length - 1 ? prev + 1 : 0))}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/60 rounded-full hover:bg-white"
+                >
+                  <ChevronRight size={24} />
+                </button>
+              </>
+            )}
+          </div>
+          
+          <div className="flex space-x-4 overflow-x-auto pb-2 hide-scrollbar">
+            {artwork.images.map((img, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveImageIdx(idx)}
+                className={`flex-shrink-0 w-20 h-20 rounded-lg border-2 overflow-hidden transition ${
+                  activeImageIdx === idx ? 'border-blue-600' : 'border-transparent hover:border-gray-200'
+                }`}
+              >
+                <img src={img} className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Info Section */}
+        <div className="flex flex-col">
+          <div className="mb-6">
+            <div className="text-blue-600 font-bold mb-1">{artwork.artist}</div>
+            <h1 className="text-3xl font-extrabold text-gray-900 mb-4">{artwork.title}</h1>
+            
+            <div className="flex flex-wrap gap-2">
+              <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">{artwork.category}</span>
+              <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">{artwork.material}</span>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 rounded-2xl p-6 space-y-4 mb-8">
+            <div className="flex items-baseline justify-between border-b border-gray-200 pb-4">
+              <span className="text-gray-500 font-medium">成交价:</span>
+              <div className="text-right">
+                <span className="text-3xl font-black text-red-600">¥ {artwork.hammerPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                <span className="block text-xs text-gray-400 mt-1">人民币 (RMB)</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between py-2">
+              <span className="text-gray-500 font-medium text-sm">估价:</span>
+              <span className="text-gray-900 font-bold">
+                ¥ {artwork.estimatedPriceMin.toLocaleString()} - {artwork.estimatedPriceMax.toLocaleString()}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between py-2">
+              <span className="text-gray-500 font-medium text-sm">规格:</span>
+              <span className="text-gray-900">{artwork.dimensions}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-8">
+            <button 
+              onClick={handleFavorite}
+              className={`flex items-center justify-center space-x-2 py-4 rounded-xl font-bold transition-all ${
+                isFavorited 
+                  ? 'bg-pink-50 text-pink-600 border border-pink-200' 
+                  : 'bg-white border-2 border-gray-100 text-gray-700 hover:border-pink-200 hover:text-pink-600'
+              }`}
+            >
+              <Heart size={20} fill={isFavorited ? "currentColor" : "none"} />
+              <span>{isFavorited ? '已收藏' : '加入收藏'}</span>
+            </button>
+            <button className="flex items-center justify-center space-x-2 py-4 border-2 border-gray-100 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition">
+              <Share2 size={20} />
+              <span>分享作品</span>
+            </button>
+          </div>
+
+          <div className="border-t pt-8 space-y-6">
+            <h3 className="text-lg font-bold">拍卖信息</h3>
+            <div className="space-y-4">
+              <div className="flex items-start">
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg mr-4">
+                  <MapPin size={20} />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-400">拍卖行 / 拍卖会</div>
+                  <div className="font-bold text-gray-900">{artwork.auctionHouse}</div>
+                  <div className="text-sm text-gray-600">{artwork.auctionSession}</div>
+                </div>
+              </div>
+
+              <div className="flex items-start">
+                <div className="p-2 bg-green-50 text-green-600 rounded-lg mr-4">
+                  <Calendar size={20} />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-400">成交时间</div>
+                  <div className="font-bold text-gray-900">{artwork.auctionDate} {artwork.auctionTime}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Description */}
+      <div className="mt-16 bg-white rounded-3xl p-8 lg:p-12 shadow-sm border border-gray-100">
+        <h3 className="text-2xl font-bold mb-6 pb-4 border-b">作品介绍</h3>
+        <div className="prose prose-blue max-w-none text-gray-600 leading-loose">
+          <p>{artwork.description}</p>
+        </div>
+      </div>
+
+      {/* Zoom Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4">
+          <button 
+            onClick={() => setShowModal(false)}
+            className="absolute top-6 right-6 text-white/50 hover:text-white transition"
+          >
+            <ChevronLeft size={48} className="rotate-45" />
+          </button>
+          <img 
+            src={artwork.images[activeImageIdx]} 
+            className="max-w-full max-h-full object-contain" 
+            alt="zoom" 
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ArtworkDetail;

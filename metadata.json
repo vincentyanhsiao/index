@@ -1,0 +1,7 @@
+{
+  "name": "ArtsyAuction Data Platform",
+  "description": "A comprehensive art auction trading data query platform with member and admin roles, featuring advanced search, favorites, and data management.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
