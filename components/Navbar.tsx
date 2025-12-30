@@ -22,7 +22,7 @@ const Navbar: React.FC<Props> = ({ user, onLogout }) => {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center space-x-2">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-xl">A</span>
+            <span className="text-white font-bold text-xl">F</span>
           </div>
           <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 hidden sm:inline">
             FUHUNG ART INDEX
