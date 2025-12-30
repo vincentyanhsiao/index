@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Artwork } from '../types';
 import ArtworkCard from '../components/ArtworkCard';
@@ -16,6 +16,20 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+
+  // 1. 动态修改网页标题 (SEO与原生分享优化)
+  useEffect(() => {
+    if (artwork) {
+      const originalTitle = document.title;
+      // 设置为用户期望的格式：艺术家 | 作品名 | 成交价
+      document.title = `${artwork.artist} | ${artwork.title} | ¥${artwork.hammerPrice.toLocaleString()}`;
+      
+      // 离开页面时恢复默认标题
+      return () => {
+        document.title = originalTitle.includes('ArtsyAuction') ? originalTitle : 'ArtsyAuction - 艺术品交易数据查询平台';
+      };
+    }
+  }, [artwork]);
 
   // 核心逻辑：计算相关作品
   const relatedArtworks = useMemo(() => {
@@ -67,10 +81,14 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
     </Link>
   );
 
+  // 2. 修改分享逻辑：使用自定义格式
   const handleShare = async () => {
+    // 构造标准格式字符串
+    const shareContent = `${artwork.artist} | ${artwork.title} | ¥${artwork.hammerPrice.toLocaleString()}`;
+    
     const shareData = {
-      title: `ArtsyAuction - ${artwork.title}`,
-      text: `我在ArtsyAuction发现了一件精彩的艺术品：${artwork.artist}《${artwork.title}》，成交价 ¥${artwork.hammerPrice.toLocaleString()}。`,
+      title: shareContent, // 标题
+      text: shareContent,  // 正文也使用相同格式，确保复制或分享时信息一致
       url: window.location.href
     };
 
@@ -82,7 +100,8 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
       }
     } else {
       try {
-        await navigator.clipboard.writeText(window.location.href);
+        // 电脑端回退：复制 "标题 + 链接" 到剪贴板，方便粘贴发送
+        await navigator.clipboard.writeText(`${shareContent} ${window.location.href}`);
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2000);
       } catch (err) {
@@ -206,7 +225,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
               }`}
             >
               {isCopied ? <Check size={20} /> : <Share2 size={20} />}
-              <span>{isCopied ? '链接已复制' : '分享此作品'}</span>
+              <span>{isCopied ? '内容已复制' : '分享此作品'}</span>
             </button>
           </div>
 
@@ -259,8 +278,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
         <div className="mt-12">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-2xl font-bold text-gray-900">相关作品</h3>
-            
-            {/* 核心修改：动态链接跳转 */}
             <Link 
               to={
                 isSameArtistRecommendation 
