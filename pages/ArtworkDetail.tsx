@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Artwork } from '../types';
-import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, Copy } from 'lucide-react';
 
 interface Props {
   artworks: Artwork[];
@@ -14,6 +14,9 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
 
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [showModal, setShowModal] = useState(false);
+  
+  // 新增：控制分享按钮的状态，用于显示“已复制”反馈
+  const [isCopied, setIsCopied] = useState(false);
 
   if (!artwork) {
     return (
@@ -29,11 +32,39 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
     <Link 
       to={`/search?q=${encodeURIComponent(keyword)}`}
       className={`hover:text-blue-600 hover:underline transition-colors cursor-pointer ${className || ''}`}
-      onClick={(e) => e.stopPropagation()} // 防止冒泡
+      onClick={(e) => e.stopPropagation()}
     >
       {children}
     </Link>
   );
+
+  // 新增：处理分享逻辑
+  const handleShare = async () => {
+    const shareData = {
+      title: `ArtsyAuction - ${artwork.title}`,
+      text: `我在ArtsyAuction发现了一件精彩的艺术品：${artwork.artist}《${artwork.title}》，成交价 ¥${artwork.hammerPrice.toLocaleString()}。`,
+      url: window.location.href
+    };
+
+    // 优先尝试调用系统原生分享 (手机端体验极佳)
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.log('分享取消或失败', err);
+      }
+    } else {
+      // 电脑端或不支持原生分享的浏览器：回退到复制链接
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        setIsCopied(true);
+        // 2秒后恢复按钮状态
+        setTimeout(() => setIsCopied(false), 2000);
+      } catch (err) {
+        alert('复制链接失败，请手动复制浏览器地址栏');
+      }
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 pb-20">
@@ -97,23 +128,19 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
         {/* Info Section */}
         <div className="flex flex-col">
           <div className="mb-6">
-            {/* 1. 艺术家链接 */}
             <div className="text-blue-600 font-bold mb-1 text-lg">
               <SearchLink keyword={artwork.artist}>
                 {artwork.artist}
               </SearchLink>
             </div>
-            
             <h1 className="text-3xl font-extrabold text-gray-900 mb-4">{artwork.title}</h1>
             
             <div className="flex flex-wrap gap-2">
-              {/* 2. 分类链接 */}
               <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
                 <SearchLink keyword={artwork.category}>
                   {artwork.category}
                 </SearchLink>
               </span>
-              {/* 3. 材质链接 */}
               <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
                 <SearchLink keyword={artwork.material}>
                   {artwork.material}
@@ -145,9 +172,17 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
           </div>
 
           <div className="mb-8">
-            <button className="w-full flex items-center justify-center space-x-2 py-4 border-2 border-gray-100 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition">
-              <Share2 size={20} />
-              <span>分享此作品</span>
+            {/* 修改：绑定 handleShare 事件，并根据状态切换图标和文字 */}
+            <button 
+              onClick={handleShare}
+              className={`w-full flex items-center justify-center space-x-2 py-4 border-2 rounded-xl font-bold transition-all active:scale-95 ${
+                isCopied 
+                  ? 'bg-green-50 border-green-200 text-green-600' 
+                  : 'border-gray-100 text-gray-700 hover:bg-gray-50 hover:border-blue-100 hover:text-blue-600'
+              }`}
+            >
+              {isCopied ? <Check size={20} /> : <Share2 size={20} />}
+              <span>{isCopied ? '链接已复制' : '分享此作品'}</span>
             </button>
           </div>
 
@@ -160,13 +195,11 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
                 </div>
                 <div>
                   <div className="text-sm text-gray-400">拍卖行 / 拍卖会</div>
-                  {/* 4. 拍卖行链接 */}
                   <div className="font-bold text-gray-900">
                     <SearchLink keyword={artwork.auctionHouse}>
                       {artwork.auctionHouse}
                     </SearchLink>
                   </div>
-                  {/* 5. 拍卖专场链接 */}
                   <div className="text-sm text-gray-600 mt-0.5">
                     <SearchLink keyword={artwork.auctionSession}>
                       {artwork.auctionSession}
@@ -192,7 +225,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
       {/* Description */}
       <div className="mt-16 bg-white rounded-3xl p-8 lg:p-12 shadow-sm border border-gray-100">
         <h3 className="text-2xl font-bold mb-6 pb-4 border-b">作品介绍</h3>
-        {/* 修复：添加 whitespace-pre-wrap 样式，保留录入时的换行和格式 */}
         <div className="prose prose-blue max-w-none text-gray-600 leading-loose whitespace-pre-wrap font-normal">
           {artwork.description}
         </div>
