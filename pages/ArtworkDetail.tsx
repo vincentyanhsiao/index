@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Artwork } from '../types';
 import ArtworkCard from '../components/ArtworkCard';
-import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, ArrowRight, Circle } from 'lucide-react';
 
 interface Props {
   artworks: Artwork[];
@@ -18,17 +18,14 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
   const [isCopied, setIsCopied] = useState(false);
 
   // ============================================================
-  // 新增核心功能：动态管理网页标题和分享缩略图 (SEO & OG Tags)
+  // SEO & OG Tags 动态设置 (保持不变)
   // ============================================================
   useEffect(() => {
     if (!artwork) return;
 
-    // --- 1. 动态设置网页标题 ---
     const originalTitle = document.title;
     document.title = `${artwork.artist} | ${artwork.title} | ¥${artwork.hammerPrice.toLocaleString()}`;
 
-    // --- 2. 动态设置社交媒体分享缩略图 (Open Graph Image) ---
-    // 定义一个辅助函数来安全地设置 meta 标签
     const setMetaTag = (property: string, content: string) => {
       let element = document.querySelector(`meta[property="${property}"]`);
       if (!element) {
@@ -39,16 +36,10 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
       element.setAttribute('content', content);
     };
 
-    // 保存页面原有的 og:image（如果有的话），以便恢复
     const originalOgImage = document.querySelector('meta[property="og:image"]')?.getAttribute('content');
-
-    // 设置当前艺术品的主图为分享缩略图
-    // 注意：这里使用 artwork.thumbnail，确保图片不大，加载快
     setMetaTag('og:image', artwork.thumbnail);
-    // 顺便设置一个描述信息
     setMetaTag('og:description', `${artwork.artist}创作。${artwork.auctionHouse}拍卖成交。`);
 
-    // --- 清理函数：当离开页面时恢复原样 ---
     return () => {
       document.title = originalTitle.includes('ArtsyAuction') ? originalTitle : 'ArtsyAuction - 艺术品交易数据查询平台';
       
@@ -60,23 +51,20 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
       document.querySelector('meta[property="og:description"]')?.remove();
     };
   }, [artwork]);
+
+
   // ============================================================
-
-
-  // 核心逻辑：计算相关作品
+  // 核心逻辑：计算相关作品 (保持不变)
+  // ============================================================
   const relatedArtworks = useMemo(() => {
     if (!artwork) return [];
     
-    // 策略1: 优先查找同艺术家的其他作品 (排除当前作品)
     const sameArtist = artworks.filter(a => 
       a.artist === artwork.artist && a.id !== artwork.id
     );
     
-    if (sameArtist.length > 0) {
-      return sameArtist.slice(0, 4);
-    }
+    if (sameArtist.length > 0) return sameArtist.slice(0, 4);
 
-    // 策略2: 如果没有同艺术家作品，查找同场拍卖会的作品
     const sameSession = artworks.filter(a => 
       a.auctionHouse === artwork.auctionHouse &&
       a.auctionSession === artwork.auctionSession && 
@@ -84,14 +72,31 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
     );
 
     return sameSession.slice(0, 4);
-
   }, [artwork, artworks]);
 
-  // 判断当前推荐的是哪种类型，用于生成“查看更多”的链接
   const isSameArtistRecommendation = useMemo(() => {
     if (!relatedArtworks.length || !artwork) return false;
     return relatedArtworks[0].artist === artwork.artist;
   }, [relatedArtworks, artwork]);
+
+
+  // ============================================================
+  // 图片切换逻辑
+  // ============================================================
+  const nextImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (artwork && artwork.images.length > 1) {
+      setActiveImageIdx(prev => (prev < artwork.images.length - 1 ? prev + 1 : 0));
+    }
+  };
+
+  const prevImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (artwork && artwork.images.length > 1) {
+      setActiveImageIdx(prev => (prev > 0 ? prev - 1 : artwork.images.length - 1));
+    }
+  };
+
 
   if (!artwork) {
     return (
@@ -102,7 +107,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
     );
   }
 
-  // 辅助函数：生成带样式的搜索链接
   const SearchLink = ({ keyword, className, children }: { keyword: string, className?: string, children: React.ReactNode }) => (
     <Link 
       to={`/search?q=${encodeURIComponent(keyword)}`}
@@ -113,30 +117,18 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
     </Link>
   );
 
-  // 修改分享逻辑：使用自定义格式
   const handleShare = async () => {
     const shareContent = `${artwork.artist} | ${artwork.title} | ¥${artwork.hammerPrice.toLocaleString()}`;
-    
-    const shareData = {
-      title: shareContent,
-      text: shareContent,
-      url: window.location.href
-    };
+    const shareData = { title: shareContent, text: shareContent, url: window.location.href };
 
     if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-        console.log('分享取消或失败', err);
-      }
+      try { await navigator.share(shareData); } catch (err) { console.log('分享取消', err); }
     } else {
       try {
         await navigator.clipboard.writeText(`${shareContent} ${window.location.href}`);
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2000);
-      } catch (err) {
-        alert('复制链接失败，请手动复制浏览器地址栏');
-      }
+      } catch (err) { alert('复制链接失败'); }
     }
   };
 
@@ -144,78 +136,87 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
     <div className="max-w-6xl mx-auto px-4 pb-20">
       <button 
         onClick={() => navigate(-1)}
-        className="flex items-center text-gray-500 hover:text-blue-600 mb-8 transition"
+        className="flex items-center text-gray-500 hover:text-blue-600 mb-6 mt-4 transition"
       >
         <ArrowLeft size={20} className="mr-2" /> 返回
       </button>
 
-      <div className="grid lg:grid-cols-2 gap-12">
-        {/* Gallery Section */}
-        <div className="space-y-4">
-          <div className="relative group aspect-square rounded-2xl overflow-hidden bg-white shadow-lg">
+      <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
+        {/* =======================
+            左侧：优化后的图片轮播
+           ======================= */}
+        <div className="space-y-4 select-none">
+          <div className="relative group aspect-square bg-gray-50 rounded-3xl overflow-hidden shadow-sm border border-gray-100">
+            {/* 主图 */}
             <img 
               src={artwork.images[activeImageIdx]} 
               alt={artwork.title}
-              className="w-full h-full object-contain cursor-zoom-in"
+              className="w-full h-full object-contain cursor-zoom-in transition-transform duration-500"
               onClick={() => setShowModal(true)}
             />
+            
+            {/* 放大按钮 (右上角) */}
             <button 
-              onClick={() => setShowModal(true)}
-              className="absolute bottom-4 right-4 p-3 bg-white/80 backdrop-blur rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => { e.stopPropagation(); setShowModal(true); }}
+              className="absolute top-4 right-4 p-2.5 bg-black/5 backdrop-blur-sm rounded-full text-gray-600 hover:bg-black/10 transition"
+              title="点击放大"
             >
               <Maximize2 size={20} />
             </button>
-            
+
+            {/* 左右切换箭头 (仅当有多张图时显示) */}
             {artwork.images.length > 1 && (
               <>
                 <button 
-                  onClick={() => setActiveImageIdx(prev => (prev > 0 ? prev - 1 : artwork.images.length - 1))}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/60 rounded-full hover:bg-white"
+                  onClick={prevImage}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/80 backdrop-blur rounded-full shadow-lg text-gray-700 hover:bg-white transition opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 active:opacity-100" // 移动端点击显示，PC端hover显示
                 >
                   <ChevronLeft size={24} />
                 </button>
                 <button 
-                  onClick={() => setActiveImageIdx(prev => (prev < artwork.images.length - 1 ? prev + 1 : 0))}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/60 rounded-full hover:bg-white"
+                  onClick={nextImage}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white/80 backdrop-blur rounded-full shadow-lg text-gray-700 hover:bg-white transition opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 active:opacity-100"
                 >
                   <ChevronRight size={24} />
                 </button>
+
+                {/* 底部圆点指示器 */}
+                <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2">
+                  {artwork.images.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={(e) => { e.stopPropagation(); setActiveImageIdx(idx); }}
+                      className={`w-2 h-2 rounded-full transition-all duration-300 shadow-sm ${
+                        activeImageIdx === idx ? 'bg-white w-6' : 'bg-white/60 hover:bg-white'
+                      }`}
+                    />
+                  ))}
+                </div>
               </>
             )}
           </div>
-          
-          <div className="flex space-x-4 overflow-x-auto pb-2 hide-scrollbar">
-            {artwork.images.map((img, idx) => (
-              <button
-                key={idx}
-                onClick={() => setActiveImageIdx(idx)}
-                className={`flex-shrink-0 w-20 h-20 rounded-lg border-2 overflow-hidden transition ${
-                  activeImageIdx === idx ? 'border-blue-600' : 'border-transparent hover:border-gray-200'
-                }`}
-              >
-                <img src={img} className="w-full h-full object-cover" />
-              </button>
-            ))}
-          </div>
         </div>
 
-        {/* Info Section */}
+        {/* =======================
+            右侧：信息区域
+           ======================= */}
         <div className="flex flex-col">
+          {/* 1. 头部信息 */}
           <div className="mb-6">
-            <div className="text-blue-600 font-bold mb-1 text-lg">
+            <div className="text-blue-600 font-bold mb-2 text-lg">
               <SearchLink keyword={artwork.artist}>
                 {artwork.artist}
               </SearchLink>
             </div>
-            <h1 className="text-3xl font-extrabold text-gray-900 mb-4">{artwork.title}</h1>
+            <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-4 leading-tight">{artwork.title}</h1>
             
             <div className="flex flex-wrap gap-2">
-              <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
+              <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-200 transition">
                 <SearchLink keyword={artwork.category}>
                   {artwork.category}
                 </SearchLink>
               </span>
-              <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
+              <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-200 transition">
                 <SearchLink keyword={artwork.material}>
                   {artwork.material}
                 </SearchLink>
@@ -223,9 +224,9 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
             </div>
           </div>
 
-          <div className="bg-gray-50 rounded-2xl p-6 space-y-4 mb-8">
+          {/* 2. 价格卡片 */}
+          <div className="bg-gray-50 rounded-2xl p-6 space-y-4 mb-8 border border-gray-100">
             <div className="flex items-baseline justify-between border-b border-gray-200 pb-4">
-              {/* 修改点 1：更新文案为“拍卖成交价:” */}
               <span className="text-gray-500 font-medium">拍卖成交价:</span>
               <div className="text-right">
                 <span className="text-3xl font-black text-red-600">¥ {artwork.hammerPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
@@ -246,35 +247,22 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
             </div>
           </div>
 
-          <div className="mb-8">
-            <button 
-              onClick={handleShare}
-              className={`w-full flex items-center justify-center space-x-2 py-4 border-2 rounded-xl font-bold transition-all active:scale-95 ${
-                isCopied 
-                  ? 'bg-green-50 border-green-200 text-green-600' 
-                  : 'border-gray-100 text-gray-700 hover:bg-gray-50 hover:border-blue-100 hover:text-blue-600'
-              }`}
-            >
-              {isCopied ? <Check size={20} /> : <Share2 size={20} />}
-              <span>{isCopied ? '内容已复制' : '分享此作品'}</span>
-            </button>
-          </div>
-
-          <div className="border-t pt-8 space-y-6">
-            <h3 className="text-lg font-bold">拍卖信息</h3>
-            <div className="space-y-4">
+          {/* 3. 拍卖信息 (位置已调整：移到了分享按钮上方) */}
+          <div className="mb-8 space-y-4">
+            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider text-opacity-50">来源出处</h3>
+            <div className="bg-white rounded-xl border p-4 space-y-4 shadow-sm">
               <div className="flex items-start">
-                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg mr-4">
-                  <MapPin size={20} />
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg mr-3 mt-0.5">
+                  <MapPin size={18} />
                 </div>
                 <div>
-                  <div className="text-sm text-gray-400">拍卖行 / 拍卖会</div>
+                  <div className="text-xs text-gray-400 mb-0.5">拍卖行 / 拍卖会</div>
                   <div className="font-bold text-gray-900">
                     <SearchLink keyword={artwork.auctionHouse}>
                       {artwork.auctionHouse}
                     </SearchLink>
                   </div>
-                  <div className="text-sm text-gray-600 mt-0.5">
+                  <div className="text-sm text-gray-600 mt-0.5 hover:text-blue-600 transition">
                     <SearchLink keyword={artwork.auctionSession}>
                       {artwork.auctionSession}
                     </SearchLink>
@@ -282,23 +270,41 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
                 </div>
               </div>
 
+              <div className="w-full h-px bg-gray-100"></div>
+
               <div className="flex items-start">
-                <div className="p-2 bg-green-50 text-green-600 rounded-lg mr-4">
-                  <Calendar size={20} />
+                <div className="p-2 bg-green-50 text-green-600 rounded-lg mr-3 mt-0.5">
+                  <Calendar size={18} />
                 </div>
                 <div>
-                  <div className="text-sm text-gray-400">成交时间</div>
-                  <div className="font-bold text-gray-900">{artwork.auctionDate} {artwork.auctionTime}</div>
+                  <div className="text-xs text-gray-400 mb-0.5">成交时间</div>
+                  <div className="font-bold text-gray-900">{artwork.auctionDate} <span className="text-gray-400 text-sm font-normal ml-1">{artwork.auctionTime}</span></div>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* 4. 分享按钮 (位置已调整：移到了最下方) */}
+          <div className="mb-8">
+            <button 
+              onClick={handleShare}
+              className={`w-full flex items-center justify-center space-x-2 py-4 border-2 rounded-xl font-bold transition-all active:scale-95 shadow-sm ${
+                isCopied 
+                  ? 'bg-green-50 border-green-200 text-green-600' 
+                  : 'border-gray-100 text-gray-700 bg-white hover:bg-gray-50 hover:border-blue-100 hover:text-blue-600'
+              }`}
+            >
+              {isCopied ? <Check size={20} /> : <Share2 size={20} />}
+              <span>{isCopied ? '内容已复制' : '分享此作品'}</span>
+            </button>
+          </div>
+
         </div>
       </div>
 
       {/* Description */}
-      <div className="mt-16 bg-white rounded-3xl p-8 lg:p-12 shadow-sm border border-gray-100">
-        <h3 className="text-2xl font-bold mb-6 pb-4 border-b">作品介绍</h3>
+      <div className="mt-8 lg:mt-16 bg-white rounded-3xl p-6 lg:p-12 shadow-sm border border-gray-100">
+        <h3 className="text-xl lg:text-2xl font-bold mb-6 pb-4 border-b">作品介绍</h3>
         <div className="prose prose-blue max-w-none text-gray-600 leading-loose whitespace-pre-wrap font-normal">
           {artwork.description || '暂无详细介绍'}
         </div>
@@ -308,8 +314,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
       {relatedArtworks.length > 0 && (
         <div className="mt-12">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-2xl font-bold text-gray-900">相关作品</h3>
-            
+            <h3 className="text-xl lg:text-2xl font-bold text-gray-900">相关作品</h3>
             <Link 
               to={
                 isSameArtistRecommendation 
@@ -330,20 +335,51 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
         </div>
       )}
 
-      {/* Zoom Modal */}
+      {/* Full Screen Zoom Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <button 
             onClick={() => setShowModal(false)}
-            className="absolute top-6 right-6 text-white/50 hover:text-white transition"
+            className="absolute top-6 right-6 p-2 bg-white/10 rounded-full text-white/70 hover:text-white hover:bg-white/20 transition"
           >
-            <ChevronLeft size={48} className="rotate-45" />
+            <ChevronLeft size={32} className="rotate-45" />
           </button>
+          
           <img 
             src={artwork.images[activeImageIdx]} 
-            className="max-w-full max-h-full object-contain" 
+            className="max-w-full max-h-full object-contain select-none" 
             alt="zoom" 
           />
+
+          {/* Modal Navigation Arrows */}
+          {artwork.images.length > 1 && (
+            <>
+              <button 
+                onClick={(e) => { e.stopPropagation(); prevImage(); }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white transition"
+              >
+                <ChevronLeft size={48} />
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); nextImage(); }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white transition"
+              >
+                <ChevronRight size={48} />
+              </button>
+              
+              {/* Modal Dots */}
+              <div className="absolute bottom-6 left-0 right-0 flex justify-center space-x-2">
+                {artwork.images.map((_, idx) => (
+                  <div
+                    key={idx}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      activeImageIdx === idx ? 'bg-white w-4' : 'bg-white/40'
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
