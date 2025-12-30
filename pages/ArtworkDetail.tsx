@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Artwork } from '../types';
 import ArtworkCard from '../components/ArtworkCard';
-import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, ArrowRight, Circle } from 'lucide-react';
+import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, ArrowRight } from 'lucide-react';
 
 interface Props {
   artworks: Artwork[];
@@ -18,7 +18,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
   const [isCopied, setIsCopied] = useState(false);
 
   // ============================================================
-  // SEO & OG Tags 动态设置 (保持不变)
+  // SEO & OG Tags 动态设置
   // ============================================================
   useEffect(() => {
     if (!artwork) return;
@@ -54,7 +54,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
 
 
   // ============================================================
-  // 核心逻辑：计算相关作品 (保持不变)
+  // 核心逻辑：计算相关作品
   // ============================================================
   const relatedArtworks = useMemo(() => {
     if (!artwork) return [];
@@ -169,7 +169,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
               <>
                 <button 
                   onClick={prevImage}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/80 backdrop-blur rounded-full shadow-lg text-gray-700 hover:bg-white transition opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 active:opacity-100" // 移动端点击显示，PC端hover显示
+                  className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/80 backdrop-blur rounded-full shadow-lg text-gray-700 hover:bg-white transition opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 active:opacity-100"
                 >
                   <ChevronLeft size={24} />
                 </button>
@@ -229,7 +229,10 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
             <div className="flex items-baseline justify-between border-b border-gray-200 pb-4">
               <span className="text-gray-500 font-medium">拍卖成交价:</span>
               <div className="text-right">
-                <span className="text-3xl font-black text-red-600">¥ {artwork.hammerPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                {/* 👇 这里的 text-2xl lg:text-3xl 就是优化的地方：
+                   手机端用 text-2xl (更小)，电脑端用 text-3xl (更大) 
+                */}
+                <span className="text-2xl lg:text-3xl font-black text-red-600">¥ {artwork.hammerPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 <span className="block text-xs text-gray-400 mt-1">人民币 (RMB)</span>
               </div>
             </div>
@@ -247,7 +250,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
             </div>
           </div>
 
-          {/* 3. 拍卖信息 (位置已调整：移到了分享按钮上方) */}
+          {/* 3. 拍卖信息 */}
           <div className="mb-8 space-y-4">
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider text-opacity-50">来源出处</h3>
             <div className="bg-white rounded-xl border p-4 space-y-4 shadow-sm">
@@ -284,7 +287,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
             </div>
           </div>
 
-          {/* 4. 分享按钮 (位置已调整：移到了最下方) */}
+          {/* 4. 分享按钮 */}
           <div className="mb-8">
             <button 
               onClick={handleShare}
