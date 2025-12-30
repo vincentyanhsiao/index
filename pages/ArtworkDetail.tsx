@@ -17,19 +17,51 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
   const [showModal, setShowModal] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
-  // 1. 动态修改网页标题 (SEO与原生分享优化)
+  // ============================================================
+  // 新增核心功能：动态管理网页标题和分享缩略图 (SEO & OG Tags)
+  // ============================================================
   useEffect(() => {
-    if (artwork) {
-      const originalTitle = document.title;
-      // 设置为用户期望的格式：艺术家 | 作品名 | 成交价
-      document.title = `${artwork.artist} | ${artwork.title} | ¥${artwork.hammerPrice.toLocaleString()}`;
+    if (!artwork) return;
+
+    // --- 1. 动态设置网页标题 ---
+    const originalTitle = document.title;
+    document.title = `${artwork.artist} | ${artwork.title} | ¥${artwork.hammerPrice.toLocaleString()}`;
+
+    // --- 2. 动态设置社交媒体分享缩略图 (Open Graph Image) ---
+    // 定义一个辅助函数来安全地设置 meta 标签
+    const setMetaTag = (property: string, content: string) => {
+      let element = document.querySelector(`meta[property="${property}"]`);
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute('property', property);
+        document.head.appendChild(element);
+      }
+      element.setAttribute('content', content);
+    };
+
+    // 保存页面原有的 og:image（如果有的话），以便恢复
+    const originalOgImage = document.querySelector('meta[property="og:image"]')?.getAttribute('content');
+
+    // 设置当前艺术品的主图为分享缩略图
+    // 注意：这里使用 artwork.thumbnail，确保图片不大，加载快
+    setMetaTag('og:image', artwork.thumbnail);
+    // 顺便设置一个描述信息
+    setMetaTag('og:description', `${artwork.artist}创作。${artwork.auctionHouse}拍卖成交。`);
+
+    // --- 清理函数：当离开页面时恢复原样 ---
+    return () => {
+      document.title = originalTitle.includes('ArtsyAuction') ? originalTitle : 'ArtsyAuction - 艺术品交易数据查询平台';
       
-      // 离开页面时恢复默认标题
-      return () => {
-        document.title = originalTitle.includes('ArtsyAuction') ? originalTitle : 'ArtsyAuction - 艺术品交易数据查询平台';
-      };
-    }
+      if (originalOgImage) {
+        setMetaTag('og:image', originalOgImage);
+      } else {
+        document.querySelector('meta[property="og:image"]')?.remove();
+      }
+      document.querySelector('meta[property="og:description"]')?.remove();
+    };
   }, [artwork]);
+  // ============================================================
+
 
   // 核心逻辑：计算相关作品
   const relatedArtworks = useMemo(() => {
@@ -81,14 +113,13 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
     </Link>
   );
 
-  // 2. 修改分享逻辑：使用自定义格式
+  // 修改分享逻辑：使用自定义格式
   const handleShare = async () => {
-    // 构造标准格式字符串
     const shareContent = `${artwork.artist} | ${artwork.title} | ¥${artwork.hammerPrice.toLocaleString()}`;
     
     const shareData = {
-      title: shareContent, // 标题
-      text: shareContent,  // 正文也使用相同格式，确保复制或分享时信息一致
+      title: shareContent,
+      text: shareContent,
       url: window.location.href
     };
 
@@ -100,7 +131,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
       }
     } else {
       try {
-        // 电脑端回退：复制 "标题 + 链接" 到剪贴板，方便粘贴发送
         await navigator.clipboard.writeText(`${shareContent} ${window.location.href}`);
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2000);
@@ -195,7 +225,8 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
 
           <div className="bg-gray-50 rounded-2xl p-6 space-y-4 mb-8">
             <div className="flex items-baseline justify-between border-b border-gray-200 pb-4">
-              <span className="text-gray-500 font-medium">成交价:</span>
+              {/* 修改点 1：更新文案为“拍卖成交价:” */}
+              <span className="text-gray-500 font-medium">拍卖成交价:</span>
               <div className="text-right">
                 <span className="text-3xl font-black text-red-600">¥ {artwork.hammerPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 <span className="block text-xs text-gray-400 mt-1">人民币 (RMB)</span>
@@ -278,6 +309,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
         <div className="mt-12">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-2xl font-bold text-gray-900">相关作品</h3>
+            
             <Link 
               to={
                 isSameArtistRecommendation 
