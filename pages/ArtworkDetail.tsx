@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Artwork } from '../types';
+import ArtworkCard from '../components/ArtworkCard';
 import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, Copy } from 'lucide-react';
 
 interface Props {
@@ -14,9 +15,33 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
 
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [showModal, setShowModal] = useState(false);
-  
-  // 新增：控制分享按钮的状态，用于显示“已复制”反馈
   const [isCopied, setIsCopied] = useState(false);
+
+  // 核心逻辑：计算相关作品
+  const relatedArtworks = useMemo(() => {
+    if (!artwork) return [];
+    
+    // 策略1: 优先查找同艺术家的其他作品 (排除当前作品)
+    const sameArtist = artworks.filter(a => 
+      a.artist === artwork.artist && a.id !== artwork.id
+    );
+    
+    // 如果有同艺术家的作品，直接返回（最多显示4个）
+    if (sameArtist.length > 0) {
+      return sameArtist.slice(0, 4);
+    }
+
+    // 策略2: 如果没有同艺术家作品，查找同场拍卖会的作品
+    // 匹配条件：同拍卖行 + 同专场名 + 排除当前作品
+    const sameSession = artworks.filter(a => 
+      a.auctionHouse === artwork.auctionHouse &&
+      a.auctionSession === artwork.auctionSession && // 允许专场为空的情况匹配
+      a.id !== artwork.id
+    );
+
+    return sameSession.slice(0, 4);
+
+  }, [artwork, artworks]);
 
   if (!artwork) {
     return (
@@ -38,7 +63,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
     </Link>
   );
 
-  // 新增：处理分享逻辑
   const handleShare = async () => {
     const shareData = {
       title: `ArtsyAuction - ${artwork.title}`,
@@ -46,7 +70,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
       url: window.location.href
     };
 
-    // 优先尝试调用系统原生分享 (手机端体验极佳)
     if (navigator.share) {
       try {
         await navigator.share(shareData);
@@ -54,11 +77,9 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
         console.log('分享取消或失败', err);
       }
     } else {
-      // 电脑端或不支持原生分享的浏览器：回退到复制链接
       try {
         await navigator.clipboard.writeText(window.location.href);
         setIsCopied(true);
-        // 2秒后恢复按钮状态
         setTimeout(() => setIsCopied(false), 2000);
       } catch (err) {
         alert('复制链接失败，请手动复制浏览器地址栏');
@@ -172,7 +193,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
           </div>
 
           <div className="mb-8">
-            {/* 修改：绑定 handleShare 事件，并根据状态切换图标和文字 */}
             <button 
               onClick={handleShare}
               className={`w-full flex items-center justify-center space-x-2 py-4 border-2 rounded-xl font-bold transition-all active:scale-95 ${
@@ -226,9 +246,26 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
       <div className="mt-16 bg-white rounded-3xl p-8 lg:p-12 shadow-sm border border-gray-100">
         <h3 className="text-2xl font-bold mb-6 pb-4 border-b">作品介绍</h3>
         <div className="prose prose-blue max-w-none text-gray-600 leading-loose whitespace-pre-wrap font-normal">
-          {artwork.description}
+          {artwork.description || '暂无详细介绍'}
         </div>
       </div>
+
+      {/* Related Artworks Section (New) */}
+      {relatedArtworks.length > 0 && (
+        <div className="mt-12">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-2xl font-bold text-gray-900">相关作品</h3>
+            <span className="text-sm text-gray-400">
+               {relatedArtworks[0].artist === artwork.artist ? '更多该艺术家作品' : '同场拍卖会其他作品'}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {relatedArtworks.map(art => (
+              <ArtworkCard key={art.id} artwork={art} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Zoom Modal */}
       {showModal && (
