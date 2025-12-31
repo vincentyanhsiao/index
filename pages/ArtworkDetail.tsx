@@ -44,7 +44,8 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
     setMetaTag('og:description', `${artwork.artist}创作。${artwork.auctionHouse}拍卖成交。`);
 
     return () => {
-      document.title = originalTitle.includes('ArtsyAuction') ? originalTitle : 'ArtsyAuction - 艺术品交易数据查询平台';
+      document.title = originalTitle.includes('FUHUNG ART INDEX') ? originalTitle : 'FUHUNG ART INDEX | 艺术品交易数据查询平台';
+      
       if (originalOgImage) {
         setMetaTag('og:image', originalOgImage);
       } else {
@@ -187,32 +188,35 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
 
         {/* 右侧：信息区域 */}
         <div className="flex flex-col">
-          {/* 1. 头部信息：标题 -> 艺术家+年份 -> 标签 */}
+          {/* 1. 头部信息：统一风格，同一行显示 */}
           <div className="mb-6">
-            <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-3 leading-tight">{artwork.title}</h1>
+            <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-4 leading-tight">{artwork.title}</h1>
             
-            {/* 修复点：确保创作年份在这里显示 */}
-            <div className="flex items-center flex-wrap mb-3 text-base lg:text-lg">
-               <span className="font-bold text-blue-600 mr-2">
-                 <SearchLink keyword={artwork.artist}>
-                   {artwork.artist}
-                 </SearchLink>
-               </span>
-               
-               {/* 这里是创作年份的显示逻辑 */}
-               {artwork.creationYear && (
-                 <span className="text-gray-500 font-medium">
+            {/* 统一的 Flex 容器，gap-2 控制间距 */}
+            <div className="flex flex-wrap items-center gap-2">
+              
+              {/* 艺术家 (样式与后面完全一致) */}
+              <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-200 transition">
+                <SearchLink keyword={artwork.artist}>
+                  {artwork.artist}
+                </SearchLink>
+              </span>
+
+              {/* 创作年份 (样式与前后完全一致) */}
+              {artwork.creationYear && (
+                 <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
                    {artwork.creationYear}
                  </span>
-               )}
-            </div>
+              )}
 
-            <div className="flex flex-wrap items-center gap-2">
+              {/* 分类 (样式与前后完全一致) */}
               <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-200 transition">
                 <SearchLink keyword={artwork.category}>
                   {artwork.category}
                 </SearchLink>
               </span>
+              
+              {/* 材质 (样式与前后完全一致) */}
               <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-200 transition">
                 <SearchLink keyword={artwork.material}>
                   {artwork.material}
