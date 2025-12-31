@@ -41,7 +41,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
 
     const originalOgImage = document.querySelector('meta[property="og:image"]')?.getAttribute('content');
     setMetaTag('og:image', artwork.thumbnail);
-    setMetaTag('og:description', `${artwork.artist}创作。FUHUNG ART INDEX | 艺术品交易数据查询平台`);
+    setMetaTag('og:description', `${artwork.artist}创作。${artwork.auctionHouse}拍卖成交。`);
 
     return () => {
       document.title = originalTitle.includes('FUHUNG ART INDEX') ? originalTitle : 'FUHUNG ART INDEX | 艺术品交易数据查询平台';
