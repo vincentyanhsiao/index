@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Artwork } from '../types';
 import ArtworkCard from '../components/ArtworkCard';
-import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, ArrowRight, Circle } from 'lucide-react';
+import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, ArrowRight } from 'lucide-react';
 
 interface Props {
   artworks: Artwork[];
@@ -17,16 +17,12 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
   const [showModal, setShowModal] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
-  // ============================================================
   // 滚动到顶部
-  // ============================================================
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [id]);
 
-  // ============================================================
   // SEO & OG Tags
-  // ============================================================
   useEffect(() => {
     if (!artwork) return;
 
@@ -49,7 +45,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
 
     return () => {
       document.title = originalTitle.includes('ArtsyAuction') ? originalTitle : 'ArtsyAuction - 艺术品交易数据查询平台';
-      
       if (originalOgImage) {
         setMetaTag('og:image', originalOgImage);
       } else {
@@ -59,10 +54,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
     };
   }, [artwork]);
 
-
-  // ============================================================
-  // 核心逻辑：计算相关作品
-  // ============================================================
+  // 相关作品推荐逻辑
   const relatedArtworks = useMemo(() => {
     if (!artwork) return [];
     
@@ -86,10 +78,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
     return relatedArtworks[0].artist === artwork.artist;
   }, [relatedArtworks, artwork]);
 
-
-  // ============================================================
   // 图片切换逻辑
-  // ============================================================
   const nextImage = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (artwork && artwork.images.length > 1) {
@@ -103,7 +92,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
       setActiveImageIdx(prev => (prev > 0 ? prev - 1 : artwork.images.length - 1));
     }
   };
-
 
   if (!artwork) {
     return (
@@ -149,9 +137,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
       </button>
 
       <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
-        {/* =======================
-            左侧：图片轮播
-           ======================= */}
+        {/* 左侧：图片轮播 */}
         <div className="space-y-4 select-none">
           <div className="relative group aspect-square bg-gray-50 rounded-3xl overflow-hidden shadow-sm border border-gray-100">
             <img 
@@ -183,7 +169,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
                 >
                   <ChevronRight size={24} />
                 </button>
-
                 <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2">
                   {artwork.images.map((_, idx) => (
                     <button
@@ -200,46 +185,39 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
           </div>
         </div>
 
-        {/* =======================
-            右侧：信息区域
-           ======================= */}
+        {/* 右侧：信息区域 */}
         <div className="flex flex-col">
-          
-          {/* 1. 头部信息优化：统一标签样式 */}
+          {/* 1. 头部信息：标题 -> 艺术家+年份 -> 标签 */}
           <div className="mb-6">
-            <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-4 leading-tight">{artwork.title}</h1>
+            <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-3 leading-tight">{artwork.title}</h1>
             
-            {/* 统一的标签容器：gap-2 保证间距一致 */}
-            <div className="flex flex-wrap items-center gap-2">
-              
-              {/* 标签1：艺术家 (带链接) */}
-              <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-200 transition">
-                <SearchLink keyword={artwork.artist}>
-                  {artwork.artist}
-                </SearchLink>
-              </span>
-
-              {/* 标签2：创作年份 (纯展示) */}
-              {artwork.creationYear && (
-                 <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
+            {/* 修复点：确保创作年份在这里显示 */}
+            <div className="flex items-center flex-wrap mb-3 text-base lg:text-lg">
+               <span className="font-bold text-blue-600 mr-2">
+                 <SearchLink keyword={artwork.artist}>
+                   {artwork.artist}
+                 </SearchLink>
+               </span>
+               
+               {/* 这里是创作年份的显示逻辑 */}
+               {artwork.creationYear && (
+                 <span className="text-gray-500 font-medium">
                    {artwork.creationYear}
                  </span>
-              )}
+               )}
+            </div>
 
-              {/* 标签3：分类 (带链接) */}
+            <div className="flex flex-wrap items-center gap-2">
               <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-200 transition">
                 <SearchLink keyword={artwork.category}>
                   {artwork.category}
                 </SearchLink>
               </span>
-              
-              {/* 标签4：材质 (带链接) */}
               <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-200 transition">
                 <SearchLink keyword={artwork.material}>
                   {artwork.material}
                 </SearchLink>
               </span>
-
             </div>
           </div>
 
@@ -252,14 +230,12 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
                 <span className="block text-xs text-gray-400 mt-1">人民币 (RMB)</span>
               </div>
             </div>
-            
             <div className="flex items-center justify-between py-2">
               <span className="text-gray-500 font-medium text-sm">估价:</span>
               <span className="text-gray-900 font-bold">
                 ¥ {artwork.estimatedPriceMin.toLocaleString()} - {artwork.estimatedPriceMax.toLocaleString()}
               </span>
             </div>
-
             <div className="flex items-center justify-between py-2">
               <span className="text-gray-500 font-medium text-sm">规格:</span>
               <span className="text-gray-900">{artwork.dimensions}</span>
@@ -287,9 +263,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
                   </div>
                 </div>
               </div>
-
               <div className="w-full h-px bg-gray-100"></div>
-
               <div className="flex items-start">
                 <div className="p-2 bg-green-50 text-green-600 rounded-lg mr-3 mt-0.5">
                   <Calendar size={18} />
@@ -316,11 +290,10 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
               <span>{isCopied ? '内容已复制' : '分享此作品'}</span>
             </button>
           </div>
-
         </div>
       </div>
 
-      {/* Description */}
+      {/* 作品介绍 */}
       <div className="mt-8 lg:mt-16 bg-white rounded-3xl p-6 lg:p-12 shadow-sm border border-gray-100">
         <h3 className="text-xl lg:text-2xl font-bold mb-6 pb-4 border-b">作品介绍</h3>
         <div className="prose prose-blue max-w-none text-gray-600 leading-loose whitespace-pre-wrap font-normal">
@@ -328,7 +301,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
         </div>
       </div>
 
-      {/* Related Artworks Section */}
+      {/* 相关作品 */}
       {relatedArtworks.length > 0 && (
         <div className="mt-12">
           <div className="flex items-center justify-between mb-6">
@@ -355,7 +328,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
         </div>
       )}
 
-      {/* Full Screen Zoom Modal */}
+      {/* 缩放模态框 */}
       {showModal && (
         <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <button 
@@ -370,32 +343,13 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
             className="max-w-full max-h-full object-contain select-none" 
             alt="zoom" 
           />
-
-          {/* Modal Navigation Arrows */}
           {artwork.images.length > 1 && (
             <>
-              <button 
-                onClick={(e) => { e.stopPropagation(); prevImage(); }}
-                className="absolute left-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white transition"
-              >
-                <ChevronLeft size={48} />
-              </button>
-              <button 
-                onClick={(e) => { e.stopPropagation(); nextImage(); }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white transition"
-              >
-                <ChevronRight size={48} />
-              </button>
-              
-              {/* Modal Dots */}
+              <button onClick={(e) => { e.stopPropagation(); prevImage(); }} className="absolute left-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white transition"><ChevronLeft size={48} /></button>
+              <button onClick={(e) => { e.stopPropagation(); nextImage(); }} className="absolute right-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white transition"><ChevronRight size={48} /></button>
               <div className="absolute bottom-6 left-0 right-0 flex justify-center space-x-2">
                 {artwork.images.map((_, idx) => (
-                  <div
-                    key={idx}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      activeImageIdx === idx ? 'bg-white w-4' : 'bg-white/40'
-                    }`}
-                  />
+                  <div key={idx} className={`w-2 h-2 rounded-full transition-all ${activeImageIdx === idx ? 'bg-white w-4' : 'bg-white/40'}`} />
                 ))}
               </div>
             </>
