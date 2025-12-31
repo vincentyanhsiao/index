@@ -27,7 +27,8 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
     if (!artwork) return;
 
     const originalTitle = document.title;
-    document.title = `${artwork.artist} | ${artwork.title} | ¥${artwork.hammerPrice.toLocaleString()}`;
+    // 1. 同时更新网页标题，保持一致性
+    document.title = `${artwork.artist} | ${artwork.title} | FUHUNG ART INDEX`;
 
     const setMetaTag = (property: string, content: string) => {
       let element = document.querySelector(`meta[property="${property}"]`);
@@ -41,10 +42,11 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
 
     const originalOgImage = document.querySelector('meta[property="og:image"]')?.getAttribute('content');
     setMetaTag('og:image', artwork.thumbnail);
-    setMetaTag('og:description', `${artwork.artist}创作。${artwork.auctionHouse}拍卖成交。`);
+    // 2. 更新 OG 描述
+    setMetaTag('og:description', `${artwork.artist}创作。FUHUNG ART INDEX | 艺术品交易数据查询平台`);
 
     return () => {
-      document.title = originalTitle.includes('FUHUNG ART INDEX') ? originalTitle : 'FUHUNG ART INDEX | 艺术品交易数据查询平台';
+      document.title = originalTitle.includes('ArtsyAuction') ? originalTitle : 'ArtsyAuction - 艺术品交易数据查询平台';
       
       if (originalOgImage) {
         setMetaTag('og:image', originalOgImage);
@@ -113,9 +115,16 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
     </Link>
   );
 
+  // 3. 核心修改：分享逻辑
   const handleShare = async () => {
-    const shareContent = `${artwork.artist} | ${artwork.title} | ¥${artwork.hammerPrice.toLocaleString()}`;
-    const shareData = { title: shareContent, text: shareContent, url: window.location.href };
+    // 修改格式为：艺术家 | 作品名 | 网站名称
+    const shareContent = `${artwork.artist} | ${artwork.title} | FUHUNG ART INDEX | 艺术品交易数据查询平台`;
+    
+    const shareData = { 
+      title: shareContent, 
+      text: shareContent, 
+      url: window.location.href 
+    };
 
     if (navigator.share) {
       try { await navigator.share(shareData); } catch (err) { console.log('分享取消', err); }
@@ -188,35 +197,33 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
 
         {/* 右侧：信息区域 */}
         <div className="flex flex-col">
-          {/* 1. 头部信息：统一风格，同一行显示 */}
+          {/* 1. 头部信息 */}
           <div className="mb-6">
             <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-4 leading-tight">{artwork.title}</h1>
             
-            {/* 统一的 Flex 容器，gap-2 控制间距 */}
             <div className="flex flex-wrap items-center gap-2">
-              
-              {/* 艺术家 (样式与后面完全一致) */}
+              {/* 艺术家 */}
               <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-200 transition">
                 <SearchLink keyword={artwork.artist}>
                   {artwork.artist}
                 </SearchLink>
               </span>
 
-              {/* 创作年份 (样式与前后完全一致) */}
+              {/* 创作年份 */}
               {artwork.creationYear && (
                  <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
                    {artwork.creationYear}
                  </span>
               )}
 
-              {/* 分类 (样式与前后完全一致) */}
+              {/* 分类 */}
               <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-200 transition">
                 <SearchLink keyword={artwork.category}>
                   {artwork.category}
                 </SearchLink>
               </span>
               
-              {/* 材质 (样式与前后完全一致) */}
+              {/* 材质 */}
               <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-200 transition">
                 <SearchLink keyword={artwork.material}>
                   {artwork.material}
@@ -230,138 +237,4 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
             <div className="flex items-baseline justify-between border-b border-gray-200 pb-4">
               <span className="text-gray-500 font-medium">拍卖成交价:</span>
               <div className="text-right">
-                <span className="text-2xl lg:text-3xl font-black text-red-600">¥ {artwork.hammerPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                <span className="block text-xs text-gray-400 mt-1">人民币 (RMB)</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between py-2">
-              <span className="text-gray-500 font-medium text-sm">估价:</span>
-              <span className="text-gray-900 font-bold">
-                ¥ {artwork.estimatedPriceMin.toLocaleString()} - {artwork.estimatedPriceMax.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex items-center justify-between py-2">
-              <span className="text-gray-500 font-medium text-sm">规格:</span>
-              <span className="text-gray-900">{artwork.dimensions}</span>
-            </div>
-          </div>
-
-          {/* 3. 拍卖信息 */}
-          <div className="mb-8 space-y-4">
-            <div className="bg-white rounded-xl border p-4 space-y-4 shadow-sm">
-              <div className="flex items-start">
-                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg mr-3 mt-0.5">
-                  <MapPin size={18} />
-                </div>
-                <div>
-                  <div className="text-xs text-gray-400 mb-0.5">拍卖行 / 拍卖会</div>
-                  <div className="font-bold text-gray-900">
-                    <SearchLink keyword={artwork.auctionHouse}>
-                      {artwork.auctionHouse}
-                    </SearchLink>
-                  </div>
-                  <div className="text-sm text-gray-600 mt-0.5 hover:text-blue-600 transition">
-                    <SearchLink keyword={artwork.auctionSession}>
-                      {artwork.auctionSession}
-                    </SearchLink>
-                  </div>
-                </div>
-              </div>
-              <div className="w-full h-px bg-gray-100"></div>
-              <div className="flex items-start">
-                <div className="p-2 bg-green-50 text-green-600 rounded-lg mr-3 mt-0.5">
-                  <Calendar size={18} />
-                </div>
-                <div>
-                  <div className="text-xs text-gray-400 mb-0.5">成交时间</div>
-                  <div className="font-bold text-gray-900">{artwork.auctionDate} <span className="text-gray-400 text-sm font-normal ml-1">{artwork.auctionTime}</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 4. 分享按钮 */}
-          <div className="mb-8">
-            <button 
-              onClick={handleShare}
-              className={`w-full flex items-center justify-center space-x-2 py-4 border-2 rounded-xl font-bold transition-all active:scale-95 shadow-sm ${
-                isCopied 
-                  ? 'bg-green-50 border-green-200 text-green-600' 
-                  : 'border-gray-100 text-gray-700 bg-white hover:bg-gray-50 hover:border-blue-100 hover:text-blue-600'
-              }`}
-            >
-              {isCopied ? <Check size={20} /> : <Share2 size={20} />}
-              <span>{isCopied ? '内容已复制' : '分享此作品'}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 作品介绍 */}
-      <div className="mt-8 lg:mt-16 bg-white rounded-3xl p-6 lg:p-12 shadow-sm border border-gray-100">
-        <h3 className="text-xl lg:text-2xl font-bold mb-6 pb-4 border-b">作品介绍</h3>
-        <div className="prose prose-blue max-w-none text-gray-600 leading-loose whitespace-pre-wrap font-normal">
-          {artwork.description || '暂无详细介绍'}
-        </div>
-      </div>
-
-      {/* 相关作品 */}
-      {relatedArtworks.length > 0 && (
-        <div className="mt-12">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl lg:text-2xl font-bold text-gray-900">相关作品</h3>
-            <Link 
-              to={
-                isSameArtistRecommendation 
-                  ? `/search?q=${encodeURIComponent(artwork.artist)}` 
-                  : `/search?q=${encodeURIComponent(artwork.auctionHouse + ' ' + artwork.auctionSession)}`
-              }
-              className="group flex items-center space-x-1 text-sm text-blue-600 font-medium hover:text-blue-700 transition"
-            >
-              <span>查看更多</span>
-              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {relatedArtworks.map(art => (
-              <Link key={art.id} to={`/artwork/${art.id}`} className="block group">
-                <ArtworkCard artwork={art} />
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 缩放模态框 */}
-      {showModal && (
-        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <button 
-            onClick={() => setShowModal(false)}
-            className="absolute top-6 right-6 p-2 bg-white/10 rounded-full text-white/70 hover:text-white hover:bg-white/20 transition"
-          >
-            <ChevronLeft size={32} className="rotate-45" />
-          </button>
-          
-          <img 
-            src={artwork.images[activeImageIdx]} 
-            className="max-w-full max-h-full object-contain select-none" 
-            alt="zoom" 
-          />
-          {artwork.images.length > 1 && (
-            <>
-              <button onClick={(e) => { e.stopPropagation(); prevImage(); }} className="absolute left-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white transition"><ChevronLeft size={48} /></button>
-              <button onClick={(e) => { e.stopPropagation(); nextImage(); }} className="absolute right-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white transition"><ChevronRight size={48} /></button>
-              <div className="absolute bottom-6 left-0 right-0 flex justify-center space-x-2">
-                {artwork.images.map((_, idx) => (
-                  <div key={idx} className={`w-2 h-2 rounded-full transition-all ${activeImageIdx === idx ? 'bg-white w-4' : 'bg-white/40'}`} />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default ArtworkDetail;
+                <span className="text-2xl lg:text-3xl font-black text-red-600">¥ {artwork.hammerPrice
