@@ -55,7 +55,7 @@ const Home: React.FC<Props> = ({ artworks }) => {
           挖掘艺术品的 <span className="text-blue-600">真实价值</span>
         </h1>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-10 px-4">
-          专业的艺术品交易数据查询平台，免费开放数万条海内外拍卖行历史记录，助您精准把握市场脉搏。
+          免费的艺术品交易数据查询平台，助您精准把握艺术市场脉搏。
         </p>
         <div className="px-4">
           <SearchSection onSearch={handleSearch} />
