@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // 引入 Link
 import { User, UserRole } from '../types';
 import { Mail, Lock, ShieldCheck, ArrowRight, User as UserIcon, CheckCircle, Smartphone } from 'lucide-react';
 
@@ -44,7 +44,6 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
         return;
       }
 
-      // 管理员后门
       if (formData.email.toLowerCase().includes('admin')) {
         const adminUser: User = {
           id: 'admin-01',
@@ -59,7 +58,6 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
         return;
       }
 
-      // 模拟普通用户登录
       const mockUser: User = {
         id: 'user-' + Math.random().toString(36).substr(2, 5),
         name: formData.email.split('@')[0],
@@ -73,7 +71,6 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
       navigate('/');
       
     } else {
-      // 注册逻辑
       if (!formData.name || !formData.email || !formData.verificationCode) {
         setError('请填写完整注册信息');
         return;
@@ -226,7 +223,11 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
                   <CheckCircle className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none" size={12} />
                 </div>
                 <span className="text-xs text-gray-500 leading-tight pt-0.5 group-hover:text-gray-700">
-                  我已阅读并同意 <a href="#" className="text-blue-600 hover:underline">《FUHUNG ART INDEX 用户服务协议》</a>
+                  我已阅读并同意 
+                  {/* 修改点：跳转到 /terms 并在新标签页打开 */}
+                  <Link to="/terms" target="_blank" className="text-blue-600 hover:underline mx-1">
+                    《FUHUNG 用户服务协议》
+                  </Link>
                 </span>
               </label>
             )}
