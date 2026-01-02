@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Artwork, User, Advertisement } from '../types';
+import { Artwork, User, Advertisement, UserRole } from '../types';
 import ArtworkCard from '../components/ArtworkCard';
-import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, ArrowRight, Heart, ExternalLink, Zap } from 'lucide-react';
+import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, ArrowRight, Heart, ExternalLink, Zap, Lock } from 'lucide-react';
 
 interface Props {
   artworks: Artwork[];
@@ -21,6 +21,9 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
   const [isCopied, setIsCopied] = useState(false);
 
   const isFavorite = user?.favorites.includes(artwork?.id || '');
+  
+  // ⚠️ 核心判断：是管理员 或者是 VIP 才能看价格
+  const canViewPrice = user?.role === UserRole.ADMIN || user?.isVip;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -63,7 +66,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
     <Link to={`/search?q=${encodeURIComponent(keyword)}`} className={`hover:text-blue-600 hover:underline transition-colors cursor-pointer ${className || ''}`} onClick={(e) => e.stopPropagation()}>{children}</Link>
   );
 
-  // 升级后的分享逻辑
   const handleShare = async () => {
     const shareData = {
       title: 'FUHUNG ART INDEX',
@@ -71,38 +73,22 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
       url: window.location.href
     };
 
-    // 1. 尝试调用原生分享 (支持 iOS/Android/Mac)
     if (navigator.share) {
       try {
         await navigator.share(shareData);
-        return; // 分享成功，直接结束
+        return;
       } catch (err) {
-        console.log('用户取消分享或分享失败，转为复制链接');
+        console.log('用户取消分享或分享失败');
       }
     }
 
-    // 2. 如果不支持原生分享，或者分享失败，则执行复制链接 (兜底方案)
     const fullShareText = `${shareData.text} ${shareData.url}`;
     try {
       await navigator.clipboard.writeText(fullShareText);
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     } catch (err) {
-      // 兼容旧浏览器的复制方法
-      try {
-        const textArea = document.createElement("textarea");
-        textArea.value = fullShareText;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-9999px";
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        setIsCopied(true);
-        setTimeout(() => setIsCopied(false), 2000);
-      } catch (e) {
-        alert('无法自动复制，请手动复制浏览器地址栏链接');
-      }
+        alert('请手动复制浏览器地址');
     }
   };
 
@@ -112,6 +98,10 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
       return;
     }
     if (onToggleFavorite) onToggleFavorite(artwork.id);
+  };
+  
+  const handleVipClick = () => {
+      alert('如需查看成交价，请联系管理员开通 VIP 会员。');
   };
 
   const renderDetailAd = () => {
@@ -182,14 +172,30 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
             </div>
           </div>
 
-          <div className="bg-gray-50 rounded-2xl p-6 space-y-4 mb-8 border border-gray-100">
+          {/* ⚠️ 价格显示区域 - VIP 逻辑 */}
+          <div className="bg-gray-50 rounded-2xl p-6 space-y-4 mb-8 border border-gray-100 relative overflow-hidden">
             <div className="flex items-baseline justify-between border-b border-gray-200 pb-4">
               <span className="text-gray-500 font-medium">拍卖成交价:</span>
-              <div className="text-right">
-                <span className="text-2xl lg:text-3xl font-black text-red-600">¥ {artwork.hammerPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                <span className="block text-xs text-gray-400 mt-1">人民币 (RMB)</span>
+              <div className="text-right relative">
+                {canViewPrice ? (
+                  <>
+                    <span className="text-2xl lg:text-3xl font-black text-red-600">¥ {artwork.hammerPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span className="block text-xs text-gray-400 mt-1">人民币 (RMB)</span>
+                  </>
+                ) : (
+                   <div className="flex flex-col items-end cursor-pointer" onClick={handleVipClick}>
+                      <span className="text-2xl lg:text-3xl font-black text-gray-300 blur-sm select-none">¥ 12,000,000</span>
+                      <div className="absolute inset-0 flex items-center justify-end">
+                          <span className="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full flex items-center shadow-sm border border-amber-200">
+                             <Lock size={12} className="mr-1" /> VIP 会员可见
+                          </span>
+                      </div>
+                   </div>
+                )}
               </div>
             </div>
+            
+            {/* 估价也对普通用户隐藏吗？通常估价是公开的，这里暂时公开，如果想隐藏也可以加判断 */}
             <div className="flex items-center justify-between py-2"><span className="text-gray-500 font-medium text-sm">估价:</span><span className="text-gray-900 font-bold">¥ {artwork.estimatedPriceMin.toLocaleString()} - {artwork.estimatedPriceMax.toLocaleString()}</span></div>
             <div className="flex items-center justify-between py-2"><span className="text-gray-500 font-medium text-sm">规格:</span><span className="text-gray-900">{artwork.dimensions}</span></div>
           </div>
