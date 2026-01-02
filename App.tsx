@@ -167,7 +167,8 @@ const App: React.FC = () => {
     <HashRouter>
       <div className="min-h-screen flex flex-col">
         <Navbar user={currentUser} onLogout={logout} />
-        <main className="flex-grow container mx-auto px-4 py-8">
+        {/* ⚠️ 修改点：将 py-8 改为 pt-32 pb-20，大幅增加顶部间距，避免导航栏遮挡，增加高级感 */}
+        <main className="flex-grow container mx-auto px-4 pt-32 pb-20">
           <Routes>
             <Route path="/" element={<Home artworks={artworks} ads={ads} />} />
             <Route path="/search" element={<SearchResults artworks={artworks} />} />
