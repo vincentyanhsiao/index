@@ -9,6 +9,7 @@ import ArtworkDetail from './pages/ArtworkDetail';
 import Auth from './pages/Auth';
 import AdminDashboard from './pages/AdminDashboard';
 import MarketIndex from './pages/MarketIndex';
+import MyFavorites from './pages/MyFavorites';
 
 const STORAGE_KEYS = {
   USER: 'artsy_user',
@@ -37,6 +38,26 @@ const App: React.FC = () => {
   const login = (user: User) => setCurrentUser(user);
   const logout = () => setCurrentUser(null);
   
+  // 核心功能：处理收藏/取消收藏
+  const toggleFavorite = (artworkId: string) => {
+    if (!currentUser) return;
+
+    const isFavorite = currentUser.favorites.includes(artworkId);
+    let newFavorites;
+
+    if (isFavorite) {
+      newFavorites = currentUser.favorites.filter(id => id !== artworkId);
+    } else {
+      newFavorites = [...currentUser.favorites, artworkId];
+    }
+
+    // 更新当前用户信息
+    setCurrentUser({
+      ...currentUser,
+      favorites: newFavorites
+    });
+  };
+  
   const updateArtwork = (updatedArtwork: Artwork) => {
     setArtworks(prev => prev.map(a => a.id === updatedArtwork.id ? updatedArtwork : a));
   };
@@ -58,14 +79,29 @@ const App: React.FC = () => {
             <Route path="/" element={<Home artworks={artworks} />} />
             <Route path="/search" element={<SearchResults artworks={artworks} />} />
             <Route path="/index" element={<MarketIndex artworks={artworks} />} />
+            
+            {/* 核心修改：将 user 和 toggleFavorite 传递给详情页 */}
             <Route 
               path="/artwork/:id" 
-              element={<ArtworkDetail artworks={artworks} />} 
+              element={
+                <ArtworkDetail 
+                  artworks={artworks} 
+                  user={currentUser}
+                  onToggleFavorite={toggleFavorite}
+                />
+              } 
             />
-            {/* 只保留登录路由，移除注册 */}
+            
             <Route path="/login" element={<Auth onAuthSuccess={login} />} />
             
-            {/* 移除 /register 和 /favorites 路由 */}
+            <Route 
+              path="/favorites" 
+              element={
+                currentUser 
+                  ? <MyFavorites user={currentUser} artworks={artworks} /> 
+                  : <Navigate to="/login" />
+              } 
+            />
             
             <Route 
               path="/admin/*" 
