@@ -13,7 +13,6 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
   const navigate = useNavigate();
   const [mode, setMode] = useState<AuthMode>('LOGIN');
   
-  // 表单状态
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -23,14 +22,13 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
   });
   
   const [error, setError] = useState('');
-  const [codeSent, setCodeSent] = useState(false); // 模拟验证码发送状态
+  const [codeSent, setCodeSent] = useState(false);
 
   const handleSendCode = () => {
     if (!formData.email) {
       setError('请先输入邮箱地址');
       return;
     }
-    // 模拟发送验证码
     alert('【模拟短信】您的验证码是：8888');
     setCodeSent(true);
     setError('');
@@ -41,13 +39,12 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
     setError('');
 
     if (mode === 'LOGIN') {
-      // --- 登录逻辑 ---
       if (!formData.email || !formData.password) {
         setError('请输入账号和密码');
         return;
       }
 
-      // 管理员登录后门 (保留原有逻辑)
+      // 管理员后门
       if (formData.email.toLowerCase().includes('admin')) {
         const adminUser: User = {
           id: 'admin-01',
@@ -63,10 +60,9 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
       }
 
       // 模拟普通用户登录
-      // 在真实后端中，这里会请求 API 验证密码
       const mockUser: User = {
         id: 'user-' + Math.random().toString(36).substr(2, 5),
-        name: formData.email.split('@')[0], // 默认用邮箱前缀当名字
+        name: formData.email.split('@')[0],
         email: formData.email,
         role: UserRole.USER,
         favorites: [],
@@ -74,10 +70,10 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
       };
       
       onAuthSuccess(mockUser);
-      navigate('/'); // 登录成功回首页
+      navigate('/');
       
     } else {
-      // --- 注册逻辑 ---
+      // 注册逻辑
       if (!formData.name || !formData.email || !formData.verificationCode) {
         setError('请填写完整注册信息');
         return;
@@ -91,7 +87,6 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
         return;
       }
 
-      // 注册成功，创建新用户
       const newUser: User = {
         id: 'user-' + Math.random().toString(36).substr(2, 9),
         name: formData.name,
@@ -111,7 +106,6 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
     <div className="min-h-[70vh] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden transition-all duration-300">
         
-        {/* 顶部切换栏 */}
         <div className="flex border-b">
           <button
             onClick={() => { setMode('LOGIN'); setError(''); }}
@@ -148,7 +142,6 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
               </div>
             )}
 
-            {/* 注册模式下的姓名字段 */}
             {mode === 'REGISTER' && (
               <div className="space-y-1">
                 <label className="text-xs font-bold text-gray-500 ml-1">姓名</label>
@@ -196,7 +189,6 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
                 </div>
               </div>
             ) : (
-              // 注册模式下的验证码字段
               <div className="space-y-1">
                 <label className="text-xs font-bold text-gray-500 ml-1">验证码</label>
                 <div className="flex space-x-2">
@@ -222,7 +214,6 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
               </div>
             )}
 
-            {/* 注册协议勾选 */}
             {mode === 'REGISTER' && (
               <label className="flex items-start space-x-2 cursor-pointer group">
                 <div className="relative flex items-center">
@@ -235,7 +226,7 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
                   <CheckCircle className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none" size={12} />
                 </div>
                 <span className="text-xs text-gray-500 leading-tight pt-0.5 group-hover:text-gray-700">
-                  我已阅读并同意 <a href="#" className="text-blue-600 hover:underline">《FUHUNG 用户服务协议》</a> 及 <a href="#" className="text-blue-600 hover:underline">《隐私政策》</a>
+                  我已阅读并同意 <a href="#" className="text-blue-600 hover:underline">《FUHUNG ART INDEX 用户服务协议》</a>
                 </span>
               </label>
             )}
