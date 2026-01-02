@@ -101,8 +101,8 @@ const Navbar: React.FC<Props> = ({ user, onLogout }) => {
             <div className="flex items-center space-x-6 text-sm font-bold text-gray-600">
               <Link to="/" className="hover:text-black transition">首页</Link>
               
-              {/* ✅ 市场指数 (保留并改名) */}
-              <Link to="/market" className="hover:text-black transition">市场指数</Link>
+              {/* ✅ 修改点：将链接从 /market 改为 /index，对应 App.tsx 中的路由配置 */}
+              <Link to="/index" className="hover:text-black transition">市场指数</Link>
               
               {/* ✅ 联系我们 (保留) */}
               <button 
@@ -184,10 +184,8 @@ const Navbar: React.FC<Props> = ({ user, onLogout }) => {
           <div className="flex flex-col space-y-6 text-lg font-bold text-gray-800">
             <Link to="/" onClick={() => setIsMenuOpen(false)} className="py-2 border-b border-gray-100">首页</Link>
             
-            {/* 移动端：市场指数 */}
+            {/* 移动端：市场指数 (此处无需修改，之前已是 /index) */}
             <Link to="/index" onClick={() => setIsMenuOpen(false)} className="py-2 border-b border-gray-100">市场指数</Link>
-            
-            <Link to="/favorites" onClick={() => setIsMenuOpen(false)} className="py-2 border-b border-gray-100">我的收藏</Link>
             
             <button onClick={() => { setIsMenuOpen(false); setShowContactModal(true); }} className="py-2 border-b border-gray-100 text-left flex items-center justify-between">
                 <span>联系我们</span>
