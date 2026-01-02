@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Artwork, User, Advertisement } from '../types'; // 引入 Advertisement
+import { Artwork, User, Advertisement } from '../types';
 import ArtworkCard from '../components/ArtworkCard';
 import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, ArrowRight, Heart, ExternalLink, Zap } from 'lucide-react';
 
@@ -8,7 +8,7 @@ interface Props {
   artworks: Artwork[];
   user?: User | null;
   onToggleFavorite?: (id: string) => void;
-  ads: Advertisement[]; // 接收广告数据
+  ads: Advertisement[];
 }
 
 const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads }) => {
@@ -63,16 +63,32 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
     <Link to={`/search?q=${encodeURIComponent(keyword)}`} className={`hover:text-blue-600 hover:underline transition-colors cursor-pointer ${className || ''}`} onClick={(e) => e.stopPropagation()}>{children}</Link>
   );
 
+  // 升级后的分享逻辑
   const handleShare = async () => {
-    const shareContent = `${artwork.artist} | ${artwork.title} | FUHUNG ART INDEX | 艺术品交易数据查询平台`;
-    const shareUrl = window.location.href;
-    const fullShareText = `${shareContent} ${shareUrl}`;
+    const shareData = {
+      title: 'FUHUNG ART INDEX',
+      text: `${artwork.artist} | ${artwork.title} | 艺术品交易数据查询`,
+      url: window.location.href
+    };
 
+    // 1. 尝试调用原生分享 (支持 iOS/Android/Mac)
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return; // 分享成功，直接结束
+      } catch (err) {
+        console.log('用户取消分享或分享失败，转为复制链接');
+      }
+    }
+
+    // 2. 如果不支持原生分享，或者分享失败，则执行复制链接 (兜底方案)
+    const fullShareText = `${shareData.text} ${shareData.url}`;
     try {
       await navigator.clipboard.writeText(fullShareText);
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     } catch (err) {
+      // 兼容旧浏览器的复制方法
       try {
         const textArea = document.createElement("textarea");
         textArea.value = fullShareText;
@@ -85,7 +101,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2000);
       } catch (e) {
-        alert('复制失败，请手动复制');
+        alert('无法自动复制，请手动复制浏览器地址栏链接');
       }
     }
   };
@@ -98,7 +114,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
     if (onToggleFavorite) onToggleFavorite(artwork.id);
   };
 
-  // 广告渲染辅助函数
   const renderDetailAd = () => {
     const ad = ads.find(a => a.slotId === 'detail_footer');
     if (!ad || !ad.isActive) return null;
@@ -203,7 +218,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
           <div className="mb-8 flex flex-col gap-4 sm:flex-row">
             <button onClick={handleShare} className={`flex-1 flex items-center justify-center space-x-2 py-4 border-2 rounded-xl font-bold transition-all active:scale-95 shadow-sm ${isCopied ? 'bg-green-50 border-green-200 text-green-600' : 'border-gray-100 text-gray-700 bg-white hover:bg-gray-50 hover:border-blue-100 hover:text-blue-600'}`}>
               {isCopied ? <Check size={20} /> : <Share2 size={20} />}
-              <span>{isCopied ? '内容已复制' : '分享此作品'}</span>
+              <span>{isCopied ? '链接已复制' : '分享此作品'}</span>
             </button>
             <button onClick={handleFavoriteClick} className={`flex-1 flex items-center justify-center space-x-2 py-4 border-2 rounded-xl font-bold transition-all active:scale-95 shadow-sm ${isFavorite ? 'bg-red-50 border-red-100 text-red-500' : 'border-gray-100 text-gray-700 bg-white hover:bg-gray-50 hover:border-red-100 hover:text-red-500'}`}>
               <Heart size={20} className={isFavorite ? "fill-current" : ""} />
@@ -218,7 +233,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
         <div className="prose prose-blue max-w-none text-gray-600 leading-loose whitespace-pre-wrap font-normal">{artwork.description || '暂无详细介绍'}</div>
       </div>
 
-      {/* 动态渲染广告位 */}
       {renderDetailAd()}
 
       {relatedArtworks.length > 0 && (
