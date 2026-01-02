@@ -1,14 +1,16 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Artwork } from '../types';
+import { Artwork, User } from '../types';
 import ArtworkCard from '../components/ArtworkCard';
-import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, ArrowRight, Heart } from 'lucide-react';
 
 interface Props {
   artworks: Artwork[];
+  user?: User | null; // 新增：接收用户信息
+  onToggleFavorite?: (id: string) => void; // 新增：接收收藏操作函数
 }
 
-const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
+const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const artwork = artworks.find(a => a.id === id);
@@ -16,6 +18,9 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+
+  // 判断当前是否已收藏
+  const isFavorite = user?.favorites.includes(artwork?.id || '');
 
   // 滚动到顶部
   useEffect(() => {
@@ -27,7 +32,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
     if (!artwork) return;
 
     const originalTitle = document.title;
-    document.title = `${artwork.artist} | ${artwork.title} | ¥${artwork.hammerPrice.toLocaleString()}`;
+    document.title = `${artwork.artist} | ${artwork.title} | FUHUNG ART INDEX`;
 
     const setMetaTag = (property: string, content: string) => {
       let element = document.querySelector(`meta[property="${property}"]`);
@@ -41,7 +46,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
 
     const originalOgImage = document.querySelector('meta[property="og:image"]')?.getAttribute('content');
     setMetaTag('og:image', artwork.thumbnail);
-    setMetaTag('og:description', `${artwork.artist}创作。${artwork.auctionHouse}拍卖成交。`);
+    setMetaTag('og:description', `${artwork.artist}创作。FUHUNG ART INDEX | 艺术品交易数据查询平台`);
 
     return () => {
       document.title = originalTitle.includes('ArtsyAuction') ? originalTitle : 'ArtsyAuction - 艺术品交易数据查询平台';
@@ -113,18 +118,64 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
     </Link>
   );
 
+  // 兼容版分享逻辑
   const handleShare = async () => {
-    const shareContent = `${artwork.artist} | ${artwork.title} | ¥${artwork.hammerPrice.toLocaleString()}`;
-    const shareData = { title: shareContent, text: shareContent, url: window.location.href };
+    const shareContent = `${artwork.artist} | ${artwork.title} | FUHUNG ART INDEX | 艺术品交易数据查询平台`;
+    const shareUrl = window.location.href;
+    const fullShareText = `${shareContent} ${shareUrl}`;
 
     if (navigator.share) {
-      try { await navigator.share(shareData); } catch (err) { console.log('分享取消', err); }
-    } else {
       try {
-        await navigator.clipboard.writeText(`${shareContent} ${window.location.href}`);
-        setIsCopied(true);
-        setTimeout(() => setIsCopied(false), 2000);
-      } catch (err) { alert('复制链接失败'); }
+        await navigator.share({
+          title: shareContent,
+          text: shareContent,
+          url: shareUrl,
+        });
+        return;
+      } catch (err) {
+        console.log('用户取消或不支持', err);
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(fullShareText);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      // 降级方案
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = fullShareText;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        if (successful) {
+          setIsCopied(true);
+          setTimeout(() => setIsCopied(false), 2000);
+        } else {
+          alert('复制失败，请手动复制浏览器地址栏');
+        }
+      } catch (fallbackErr) {
+        alert('您的浏览器不支持自动复制，请手动复制地址栏链接');
+      }
+    }
+  };
+
+  // 处理收藏点击
+  const handleFavoriteClick = () => {
+    if (!user) {
+      if (window.confirm('收藏功能需要登录后使用，是否前往登录？')) {
+        navigate('/login');
+      }
+      return;
+    }
+    if (onToggleFavorite) {
+      onToggleFavorite(artwork.id);
     }
   };
 
@@ -188,35 +239,26 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
 
         {/* 右侧：信息区域 */}
         <div className="flex flex-col">
-          {/* 1. 头部信息：统一风格，同一行显示 */}
+          {/* 1. 头部信息 */}
           <div className="mb-6">
             <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-4 leading-tight">{artwork.title}</h1>
             
-            {/* 统一的 Flex 容器，gap-2 控制间距 */}
             <div className="flex flex-wrap items-center gap-2">
-              
-              {/* 艺术家 (样式与后面完全一致) */}
               <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-200 transition">
                 <SearchLink keyword={artwork.artist}>
                   {artwork.artist}
                 </SearchLink>
               </span>
-
-              {/* 创作年份 (样式与前后完全一致) */}
               {artwork.creationYear && (
                  <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
                    {artwork.creationYear}
                  </span>
               )}
-
-              {/* 分类 (样式与前后完全一致) */}
               <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-200 transition">
                 <SearchLink keyword={artwork.category}>
                   {artwork.category}
                 </SearchLink>
               </span>
-              
-              {/* 材质 (样式与前后完全一致) */}
               <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-200 transition">
                 <SearchLink keyword={artwork.material}>
                   {artwork.material}
@@ -280,11 +322,12 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
             </div>
           </div>
 
-          {/* 4. 分享按钮 */}
-          <div className="mb-8">
+          {/* 4. 分享与收藏按钮 (操作区) */}
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row">
+            {/* 分享按钮 */}
             <button 
               onClick={handleShare}
-              className={`w-full flex items-center justify-center space-x-2 py-4 border-2 rounded-xl font-bold transition-all active:scale-95 shadow-sm ${
+              className={`flex-1 flex items-center justify-center space-x-2 py-4 border-2 rounded-xl font-bold transition-all active:scale-95 shadow-sm ${
                 isCopied 
                   ? 'bg-green-50 border-green-200 text-green-600' 
                   : 'border-gray-100 text-gray-700 bg-white hover:bg-gray-50 hover:border-blue-100 hover:text-blue-600'
@@ -292,6 +335,19 @@ const ArtworkDetail: React.FC<Props> = ({ artworks }) => {
             >
               {isCopied ? <Check size={20} /> : <Share2 size={20} />}
               <span>{isCopied ? '内容已复制' : '分享此作品'}</span>
+            </button>
+
+            {/* 收藏按钮 (新增) */}
+            <button 
+              onClick={handleFavoriteClick}
+              className={`flex-1 flex items-center justify-center space-x-2 py-4 border-2 rounded-xl font-bold transition-all active:scale-95 shadow-sm ${
+                isFavorite 
+                  ? 'bg-red-50 border-red-100 text-red-500' 
+                  : 'border-gray-100 text-gray-700 bg-white hover:bg-gray-50 hover:border-red-100 hover:text-red-500'
+              }`}
+            >
+              <Heart size={20} className={isFavorite ? "fill-current" : ""} />
+              <span>{isFavorite ? '已收藏' : '收藏此作品'}</span>
             </button>
           </div>
         </div>
