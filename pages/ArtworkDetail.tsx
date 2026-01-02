@@ -1,17 +1,17 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Artwork, User } from '../types';
+import { Artwork, User, Advertisement } from '../types'; // 引入 Advertisement
 import ArtworkCard from '../components/ArtworkCard';
-// 修改点 1：引入 ExternalLink 和 Zap 图标
 import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, ArrowRight, Heart, ExternalLink, Zap } from 'lucide-react';
 
 interface Props {
   artworks: Artwork[];
   user?: User | null;
   onToggleFavorite?: (id: string) => void;
+  ads: Advertisement[]; // 接收广告数据
 }
 
-const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite }) => {
+const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const artwork = artworks.find(a => a.id === id);
@@ -98,12 +98,46 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite }) =>
     if (onToggleFavorite) onToggleFavorite(artwork.id);
   };
 
+  // 广告渲染辅助函数
+  const renderDetailAd = () => {
+    const ad = ads.find(a => a.slotId === 'detail_footer');
+    if (!ad || !ad.isActive) return null;
+
+    if (ad.imageUrl) {
+      return (
+        <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer" className="block w-full h-32 md:h-40 rounded-2xl overflow-hidden relative group shadow-sm hover:shadow-lg transition-all mt-8 lg:mt-12">
+          <img src={ad.imageUrl} alt={ad.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+          <div className="absolute top-0 right-0 bg-black/50 text-white text-[10px] px-2 py-1 rounded-bl-lg">广告</div>
+        </a>
+      );
+    }
+
+    return (
+      <div className="mt-8 lg:mt-12">
+        <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer" className="block w-full h-32 md:h-40 rounded-2xl overflow-hidden relative group shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-800 to-indigo-900 transition-transform duration-700 group-hover:scale-105"></div>
+          <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4 z-10">
+            <div className="flex items-center space-x-2 mb-1">
+              <Zap size={18} className="text-yellow-400 fill-current animate-pulse"/>
+              <span className="text-xs md:text-sm font-medium tracking-widest uppercase bg-white/10 px-2 py-0.5 rounded border border-white/20">Premium</span>
+            </div>
+            <h3 className="text-lg md:text-2xl font-bold tracking-wide drop-shadow-sm text-center">{ad.title}</h3>
+            <div className="mt-3 flex items-center space-x-1 text-xs md:text-sm font-bold text-indigo-100 hover:text-white transition-colors">
+              <span>升级专业版会员，查看完整报告</span><ExternalLink size={14} />
+            </div>
+          </div>
+          <div className="absolute top-0 right-0 bg-black/40 text-white text-[10px] px-2 py-1 rounded-bl-lg backdrop-blur-sm z-20">广告</div>
+        </a>
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 pb-20">
       <button onClick={() => navigate(-1)} className="flex items-center text-gray-500 hover:text-blue-600 mb-6 mt-4 transition"><ArrowLeft size={20} className="mr-2" /> 返回</button>
 
       <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
-        {/* 图片区域 */}
         <div className="space-y-4 select-none">
           <div className="relative group aspect-square bg-gray-50 rounded-3xl overflow-hidden shadow-sm border border-gray-100">
             <img src={artwork.images[activeImageIdx]} alt={artwork.title} className="w-full h-full object-contain cursor-zoom-in transition-transform duration-500" onClick={() => setShowModal(true)} />
@@ -122,7 +156,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite }) =>
           </div>
         </div>
 
-        {/* 信息区域 */}
         <div className="flex flex-col">
           <div className="mb-6">
             <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-4 leading-tight">{artwork.title}</h1>
@@ -167,7 +200,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite }) =>
             </div>
           </div>
 
-          {/* 按钮区域 */}
           <div className="mb-8 flex flex-col gap-4 sm:flex-row">
             <button onClick={handleShare} className={`flex-1 flex items-center justify-center space-x-2 py-4 border-2 rounded-xl font-bold transition-all active:scale-95 shadow-sm ${isCopied ? 'bg-green-50 border-green-200 text-green-600' : 'border-gray-100 text-gray-700 bg-white hover:bg-gray-50 hover:border-blue-100 hover:text-blue-600'}`}>
               {isCopied ? <Check size={20} /> : <Share2 size={20} />}
@@ -181,43 +213,13 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite }) =>
         </div>
       </div>
 
-      {/* 作品介绍 */}
       <div className="mt-8 lg:mt-16 bg-white rounded-3xl p-6 lg:p-12 shadow-sm border border-gray-100">
         <h3 className="text-xl lg:text-2xl font-bold mb-6 pb-4 border-b">作品介绍</h3>
         <div className="prose prose-blue max-w-none text-gray-600 leading-loose whitespace-pre-wrap font-normal">{artwork.description || '暂无详细介绍'}</div>
       </div>
 
-      {/* 修改点 2：新增详情页广告位 */}
-      <div className="mt-8 lg:mt-12">
-        <a 
-          href="https://www.example.com" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="block w-full h-32 md:h-40 rounded-2xl overflow-hidden relative group shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
-        >
-          {/* 广告背景：深色渐变 */}
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-800 to-indigo-900 transition-transform duration-700 group-hover:scale-105"></div>
-          <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-          
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4 z-10">
-            <div className="flex items-center space-x-2 mb-1">
-              <Zap size={18} className="text-yellow-400 fill-current animate-pulse"/>
-              <span className="text-xs md:text-sm font-medium tracking-widest uppercase bg-white/10 px-2 py-0.5 rounded border border-white/20">Premium</span>
-            </div>
-            <h3 className="text-lg md:text-2xl font-bold tracking-wide drop-shadow-sm text-center">
-              想了解此艺术家的更多市场数据？
-            </h3>
-            <div className="mt-3 flex items-center space-x-1 text-xs md:text-sm font-bold text-indigo-100 hover:text-white transition-colors">
-              <span>升级专业版会员，查看完整报告</span>
-              <ExternalLink size={14} />
-            </div>
-          </div>
-          
-          <div className="absolute top-0 right-0 bg-black/40 text-white text-[10px] px-2 py-1 rounded-bl-lg backdrop-blur-sm z-20">
-            广告
-          </div>
-        </a>
-      </div>
+      {/* 动态渲染广告位 */}
+      {renderDetailAd()}
 
       {relatedArtworks.length > 0 && (
         <div className="mt-12">
