@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "node server/index.js"
+"zeabur-build": "npm run build"
   },
   "dependencies": {
     "express": "^4.21.2",
