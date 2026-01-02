@@ -14,7 +14,7 @@ import Terms from './pages/Terms';
 
 const STORAGE_KEYS = {
   USER: 'artsy_user',
-  ALL_USERS: 'artsy_all_users', // 新增：存储所有用户列表
+  ALL_USERS: 'artsy_all_users', // 存储所有用户列表
   ARTWORKS: 'artsy_artworks'
 };
 
@@ -24,7 +24,7 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : null;
   });
 
-  // 新增：管理所有注册用户
+  // 管理所有注册用户
   const [allUsers, setAllUsers] = useState<User[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.ALL_USERS);
     // 默认包含一个管理员账号，避免空列表
@@ -48,7 +48,7 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(currentUser));
   }, [currentUser]);
 
-  // 新增：持久化所有用户数据
+  // 持久化所有用户数据
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.ALL_USERS, JSON.stringify(allUsers));
   }, [allUsers]);
@@ -90,7 +90,7 @@ const App: React.FC = () => {
     setArtworks(prev => [artwork, ...prev]);
   };
 
-  // 新增：批量导入艺术品
+  // 批量导入艺术品
   const handleBatchImport = (newArtworks: Artwork[]) => {
     setArtworks(prev => [...newArtworks, ...prev]);
   };
@@ -103,6 +103,8 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<Home artworks={artworks} />} />
             <Route path="/search" element={<SearchResults artworks={artworks} />} />
+            
+            {/* 修正点：这里的 MarketIndex 不再传递 user 参数 */}
             <Route path="/index" element={<MarketIndex artworks={artworks} />} />
             
             <Route 
