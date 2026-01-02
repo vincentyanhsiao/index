@@ -70,7 +70,7 @@ const Home: React.FC<Props> = ({ artworks, ads }) => {
     <div className="space-y-20 pb-20">
       <section className="text-center py-16 bg-gradient-to-b from-blue-50/50 to-transparent rounded-3xl">
         <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 mb-6 leading-tight">挖掘艺术品的 <span className="text-blue-600">真实价值</span></h1>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-10 px-4">专业的艺术品交易数据查询平台，注册会员解锁更多高级功能，助您精准把握市场脉搏。</p>
+        <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-10 px-4">专业的艺术品交易数据查询平台，助您精准把握艺术市场脉搏。</p>
         <div className="px-4"><SearchSection onSearch={handleSearch} /></div>
       </section>
 
@@ -79,7 +79,7 @@ const Home: React.FC<Props> = ({ artworks, ads }) => {
           { icon: <Search className="text-blue-600" />, title: '多维搜索', desc: '支持艺术家、作品名、拍卖行多维度模糊及精准查询' },
           { icon: <TrendingUp className="text-green-600" />, title: '行情趋势', desc: '实时更新拍卖成交价，掌握作品市场价格走势' },
           { icon: <ShieldCheck className="text-purple-600" />, title: '权威认证', desc: '数据来源于全球主流拍卖行，确保真实有效' },
-          { icon: <Zap className="text-orange-600" />, title: '会员服务', desc: '注册即享专属收藏夹、数据导出等高级权益' },
+          { icon: <Zap className="text-orange-600" />, title: '会员服务', desc: '注册即享专属收藏夹、获取最新交易数据等高级权益' },
         ].map((feature, idx) => (
           <div key={idx} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition">
             <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center mb-4">{feature.icon}</div>
