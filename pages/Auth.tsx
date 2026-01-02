@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { User, UserRole } from '../types';
-import { Mail, Lock, ShieldCheck, ArrowRight, User as UserIcon, CheckCircle, Smartphone } from 'lucide-react';
+import { Mail, Lock, ShieldCheck, ArrowRight, User as UserIcon, CheckCircle } from 'lucide-react';
 
 interface Props {
-  // 修改接口定义：增加 isRegister 参数
   onAuthSuccess: (user: User, isRegister: boolean) => void;
 }
 
@@ -18,33 +17,23 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
     name: '',
     email: '',
     password: '',
-    verificationCode: '',
     agreed: false
   });
   
   const [error, setError] = useState('');
-  const [codeSent, setCodeSent] = useState(false);
-
-  const handleSendCode = () => {
-    if (!formData.email) {
-      setError('请先输入邮箱地址');
-      return;
-    }
-    alert('【模拟短信】您的验证码是：8888');
-    setCodeSent(true);
-    setError('');
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     if (mode === 'LOGIN') {
+      // --- 登录逻辑 ---
       if (!formData.email || !formData.password) {
         setError('请输入账号和密码');
         return;
       }
 
+      // 管理员后门 (保留)
       if (formData.email.toLowerCase().includes('admin')) {
         const adminUser: User = {
           id: 'admin-01',
@@ -54,7 +43,7 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
           favorites: [],
           isMarketingAuthorized: false
         };
-        onAuthSuccess(adminUser, false); // false 表示非注册
+        onAuthSuccess(adminUser, false);
         navigate('/admin');
         return;
       }
@@ -62,7 +51,7 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
       // 模拟普通用户登录
       const mockUser: User = {
         id: 'user-' + Math.random().toString(36).substr(2, 5),
-        name: formData.email.split('@')[0],
+        name: formData.email.split('@')[0], // 默认显示邮箱前缀
         email: formData.email,
         role: UserRole.USER,
         favorites: [],
@@ -73,20 +62,20 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
       navigate('/');
       
     } else {
-      // 注册逻辑
-      if (!formData.name || !formData.email || !formData.verificationCode) {
-        setError('请填写完整注册信息');
+      // --- 注册逻辑 (已简化) ---
+      // 1. 校验必填项 (移除了验证码)
+      if (!formData.name || !formData.email) {
+        setError('请填写完整的注册信息');
         return;
       }
-      if (formData.verificationCode !== '8888') {
-        setError('验证码错误');
-        return;
-      }
+      
+      // 2. 校验协议勾选
       if (!formData.agreed) {
         setError('请阅读并同意服务协议');
         return;
       }
 
+      // 3. 注册成功
       const newUser: User = {
         id: 'user-' + Math.random().toString(36).substr(2, 9),
         name: formData.name,
@@ -96,9 +85,8 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
         isMarketingAuthorized: true
       };
 
-      // 注册成功，传入 true
       onAuthSuccess(newUser, true);
-      alert('注册成功！');
+      alert('注册成功，欢迎加入！');
       navigate('/');
     }
   };
@@ -107,6 +95,7 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
     <div className="min-h-[70vh] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden transition-all duration-300">
         
+        {/* 顶部切换栏 */}
         <div className="flex border-b">
           <button
             onClick={() => { setMode('LOGIN'); setError(''); }}
@@ -122,7 +111,7 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
               mode === 'REGISTER' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
             }`}
           >
-            注册会员
+            快速注册
           </button>
         </div>
 
@@ -132,7 +121,7 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
               {mode === 'LOGIN' ? '欢迎回来' : '加入 FUHUNG'}
             </h2>
             <p className="text-gray-400 text-sm mt-1">
-              {mode === 'LOGIN' ? '登录以管理您的收藏和偏好' : '注册会员开启完整艺术数据服务'}
+              {mode === 'LOGIN' ? '登录以管理您的收藏和偏好' : '注册即刻享受会员专属权益'}
             </p>
           </div>
         
@@ -143,6 +132,7 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
               </div>
             )}
 
+            {/* 注册模式：显示姓名输入框 */}
             {mode === 'REGISTER' && (
               <div className="space-y-1">
                 <label className="text-xs font-bold text-gray-500 ml-1">姓名</label>
@@ -159,6 +149,7 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
               </div>
             )}
 
+            {/* 公共：邮箱输入框 */}
             <div className="space-y-1">
               <label className="text-xs font-bold text-gray-500 ml-1">
                 {mode === 'LOGIN' ? '账号 / 邮箱' : '电子邮箱'}
@@ -168,14 +159,15 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
                 <input
                   type="email"
                   className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 outline-none transition-all"
-                  placeholder={mode === 'LOGIN' ? "请输入邮箱或管理员账号" : "用于接收验证码"}
+                  placeholder={mode === 'LOGIN' ? "请输入邮箱或管理员账号" : "请输入您的常用邮箱"}
                   value={formData.email}
                   onChange={e => setFormData({...formData, email: e.target.value})}
                 />
               </div>
             </div>
 
-            {mode === 'LOGIN' ? (
+            {/* 登录模式：显示密码框 */}
+            {mode === 'LOGIN' && (
               <div className="space-y-1">
                 <label className="text-xs font-bold text-gray-500 ml-1">密码</label>
                 <div className="relative">
@@ -189,32 +181,9 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
                   />
                 </div>
               </div>
-            ) : (
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 ml-1">验证码</label>
-                <div className="flex space-x-2">
-                  <div className="relative flex-grow">
-                    <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input
-                      type="text"
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 outline-none transition-all"
-                      placeholder="请输入验证码"
-                      value={formData.verificationCode}
-                      onChange={e => setFormData({...formData, verificationCode: e.target.value})}
-                    />
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={handleSendCode}
-                    disabled={codeSent}
-                    className="px-4 py-2 bg-blue-50 text-blue-600 text-xs font-bold rounded-xl hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap transition-colors"
-                  >
-                    {codeSent ? '已发送' : '获取验证码'}
-                  </button>
-                </div>
-              </div>
             )}
 
+            {/* 注册模式：协议勾选 */}
             {mode === 'REGISTER' && (
               <label className="flex items-start space-x-2 cursor-pointer group">
                 <div className="relative flex items-center">
@@ -236,7 +205,7 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
               type="submit"
               className="w-full py-4 bg-gray-900 text-white rounded-xl font-bold flex items-center justify-center space-x-2 hover:bg-black active:scale-95 transition-all shadow-lg shadow-gray-200"
             >
-              <span>{mode === 'LOGIN' ? '立即登录' : '确认注册'}</span>
+              <span>{mode === 'LOGIN' ? '立即登录' : '立即注册'}</span>
               <ArrowRight size={18} />
             </button>
           </form>
