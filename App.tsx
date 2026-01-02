@@ -14,9 +14,7 @@ import Terms from './pages/Terms';
 
 const STORAGE_KEYS = {
   USER: 'artsy_user',
-  ALL_USERS: 'artsy_all_users',
-  ARTWORKS: 'artsy_artworks',
-  ADS: 'artsy_ads' // 新增：广告存储key
+  ADS: 'artsy_ads' 
 };
 
 // 默认广告位配置
@@ -29,63 +27,71 @@ const INITIAL_ADS: Advertisement[] = [
 ];
 
 const App: React.FC = () => {
+  // 当前登录用户 (本地持久化登录状态)
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.USER);
     return saved ? JSON.parse(saved) : null;
   });
 
-  const [allUsers, setAllUsers] = useState<User[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.ALL_USERS);
-    const defaultAdmin: User = {
-      id: 'admin-01',
-      name: '管理员',
-      email: 'admin@fuhung.cn',
-      password: 'xiao1988HB',
-      role: UserRole.ADMIN,
-      favorites: [],
-      isMarketingAuthorized: false
-    };
-    return saved ? JSON.parse(saved) : [defaultAdmin];
-  });
+  // 所有用户列表 (管理员用，从后台获取)
+  const [allUsers, setAllUsers] = useState<User[]>([]);
 
-  const [artworks, setArtworks] = useState<Artwork[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.ARTWORKS);
-    return saved ? JSON.parse(saved) : INITIAL_ARTWORKS;
-  });
+  // 艺术品数据 (从后台获取)
+  const [artworks, setArtworks] = useState<Artwork[]>([]);
 
-  // 新增：广告状态管理
+  // 广告数据 (本地暂存，实际项目建议也移至数据库)
   const [ads, setAds] = useState<Advertisement[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.ADS);
     return saved ? JSON.parse(saved) : INITIAL_ADS;
   });
+
+  // --- 初始化：从服务器拉取数据 ---
+  useEffect(() => {
+    fetchArtworks();
+    if (currentUser?.role === UserRole.ADMIN) {
+      fetchUsers();
+    }
+  }, [currentUser]);
+
+  const fetchArtworks = async () => {
+    try {
+      const res = await fetch('/api/artworks');
+      if (res.ok) {
+        const data = await res.json();
+        // 如果数据库为空，使用初始数据填充 (可选)
+        if (data.length === 0) {
+           setArtworks(INITIAL_ARTWORKS);
+        } else {
+           setArtworks(data);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch artworks:', error);
+      setArtworks(INITIAL_ARTWORKS); // 降级方案
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('/api/users');
+      if (res.ok) setAllUsers(await res.json());
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    }
+  };
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(currentUser));
   }, [currentUser]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.ALL_USERS, JSON.stringify(allUsers));
-  }, [allUsers]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.ARTWORKS, JSON.stringify(artworks));
-  }, [artworks]);
-
-  useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.ADS, JSON.stringify(ads));
   }, [ads]);
 
+  // --- 操作逻辑：调用 API ---
+
   const handleAuthSuccess = (user: User, isRegister: boolean) => {
     setCurrentUser(user);
-    if (isRegister) {
-      setAllUsers(prev => [...prev, user]);
-    }
-  };
-
-  const handlePasswordReset = (email: string, newPass: string) => {
-    setAllUsers(prev => prev.map(u => 
-      u.email === email ? { ...u, password: newPass } : u
-    ));
   };
 
   const logout = () => setCurrentUser(null);
@@ -97,26 +103,62 @@ const App: React.FC = () => {
       ? currentUser.favorites.filter(id => id !== artworkId)
       : [...currentUser.favorites, artworkId];
 
+    // 更新本地状态
     setCurrentUser({ ...currentUser, favorites: newFavorites });
+    // TODO: 调用 API 更新用户收藏 (此处暂略，需后端支持 PUT /api/users/:id)
   };
 
-  const updateArtwork = (updatedArtwork: Artwork) => {
-    setArtworks(prev => prev.map(a => a.id === updatedArtwork.id ? updatedArtwork : a));
+  const addArtwork = async (artwork: Artwork) => {
+    try {
+      const res = await fetch('/api/artworks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(artwork)
+      });
+      if (res.ok) {
+        const savedArt = await res.json();
+        setArtworks(prev => [savedArt, ...prev]);
+      }
+    } catch (error) {
+      alert('发布失败，请重试');
+    }
   };
 
-  const deleteArtwork = (id: string) => {
-    setArtworks(prev => prev.filter(a => a.id !== id));
+  const updateArtwork = async (updatedArtwork: Artwork) => {
+    try {
+      const res = await fetch(`/api/artworks/${updatedArtwork.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedArtwork)
+      });
+      if (res.ok) {
+        setArtworks(prev => prev.map(a => a.id === updatedArtwork.id ? updatedArtwork : a));
+      }
+    } catch (error) {
+      alert('更新失败');
+    }
   };
 
-  const addArtwork = (artwork: Artwork) => {
-    setArtworks(prev => [artwork, ...prev]);
+  const deleteArtwork = async (id: string) => {
+    try {
+      const res = await fetch(`/api/artworks/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setArtworks(prev => prev.filter(a => a.id !== id));
+      }
+    } catch (error) {
+      alert('删除失败');
+    }
   };
 
-  const handleBatchImport = (newArtworks: Artwork[]) => {
-    setArtworks(prev => [...newArtworks, ...prev]);
+  const handleBatchImport = async (newArtworks: Artwork[]) => {
+    // 简单实现：循环调用添加接口 (量大时建议后端增加批量接口)
+    for (const art of newArtworks) {
+      await addArtwork(art);
+    }
+    alert('批量导入完成');
+    fetchArtworks(); // 刷新列表
   };
 
-  // 新增：更新广告的方法
   const updateAd = (updatedAd: Advertisement) => {
     setAds(prev => prev.map(ad => ad.id === updatedAd.id ? updatedAd : ad));
   };
@@ -127,12 +169,10 @@ const App: React.FC = () => {
         <Navbar user={currentUser} onLogout={logout} />
         <main className="flex-grow container mx-auto px-4 py-8">
           <Routes>
-            {/* 传递 ads */}
             <Route path="/" element={<Home artworks={artworks} ads={ads} />} />
             <Route path="/search" element={<SearchResults artworks={artworks} />} />
             <Route path="/index" element={<MarketIndex artworks={artworks} />} />
             
-            {/* 传递 ads */}
             <Route 
               path="/artwork/:id" 
               element={
@@ -150,8 +190,6 @@ const App: React.FC = () => {
               element={
                 <Auth 
                   onAuthSuccess={handleAuthSuccess} 
-                  users={allUsers} 
-                  onPasswordReset={handlePasswordReset} 
                 />
               } 
             />
@@ -167,7 +205,6 @@ const App: React.FC = () => {
               } 
             />
             
-            {/* 传递 ads 和 updateAd */}
             <Route 
               path="/admin/*" 
               element={
@@ -175,12 +212,12 @@ const App: React.FC = () => {
                   ? <AdminDashboard 
                       artworks={artworks} 
                       allUsers={allUsers}
-                      ads={ads} // Pass ads
+                      ads={ads}
                       onUpdate={updateArtwork} 
                       onDelete={deleteArtwork} 
                       onAdd={addArtwork}
                       onBatchImport={handleBatchImport}
-                      onUpdateAd={updateAd} // Pass update handler
+                      onUpdateAd={updateAd}
                     /> 
                   : <Navigate to="/login" />
               } 
