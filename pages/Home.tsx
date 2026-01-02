@@ -51,7 +51,7 @@ const Home: React.FC<Props> = ({ artworks }) => {
         </h1>
         {/* 修改部分：更新文案 */}
         <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-10 px-4">
-          专业的艺术品交易数据查询平台，注册会员解锁更多高级功能，助您精准把握市场脉搏。
+          免费的专业艺术品交易数据查询平台，助您精准把握艺术市场脉搏。
         </p>
         <div className="px-4">
           <SearchSection onSearch={handleSearch} />
