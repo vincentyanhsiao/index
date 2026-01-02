@@ -95,6 +95,36 @@ const Home: React.FC<Props> = ({ artworks }) => {
         </div>
       </section>
 
+      {/* === 新增：精选成交下方的广告位 === */}
+      <div className="px-4">
+        <a 
+          href="https://www.example.com" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="block w-full h-32 md:h-40 rounded-2xl overflow-hidden relative group my-8 md:my-12 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+        >
+          {/* 这里的渐变色使用了橙红暖色调，区别于其他广告 */}
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-pink-600 transition-transform duration-700 group-hover:scale-105"></div>
+          <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4 z-10">
+            <div className="flex items-center space-x-2 mb-1">
+              <Zap size={18} className="text-yellow-300 fill-current animate-pulse"/>
+              <span className="text-xs md:text-sm font-medium tracking-widest uppercase bg-white/20 px-2 py-0.5 rounded">Sponsored</span>
+            </div>
+            <h3 className="text-xl md:text-3xl font-black tracking-wide drop-shadow-sm text-center">
+              专业艺术品估值服务 · 专家在线
+            </h3>
+            <div className="mt-3 flex items-center space-x-1 text-xs md:text-sm font-bold bg-white text-gray-900 px-4 py-1.5 rounded-full hover:bg-yellow-300 transition-colors cursor-pointer">
+              <span>立即预约</span>
+              <ExternalLink size={14} />
+            </div>
+          </div>
+          <div className="absolute top-0 right-0 bg-black/30 text-white text-[10px] px-2 py-1 rounded-bl-lg backdrop-blur-sm z-20">
+            广告
+          </div>
+        </a>
+      </div>
+
       {/* 自动生成的分类推荐版块 + 广告位 */}
       {categorySections.map((section, idx) => (
         <React.Fragment key={idx}>
@@ -123,30 +153,22 @@ const Home: React.FC<Props> = ({ artworks }) => {
             </div>
           </section>
 
-          {/* === 新增：广告位 (Ad Slot) === 
-            1. 位置：每个分类版块之后
-            2. 样式：固定高度 (h-32 md:h-40)，圆角，阴影
-            3. 功能：新窗口打开 (target="_blank")
-            4. 内容：使用循环模版模拟不同的广告内容
-          */}
+          {/* 分类间的广告位 */}
           <div className="px-4">
             <a 
-              href="https://www.example.com" // 这里可以替换为真实的广告链接
+              href="https://www.example.com"
               target="_blank" 
               rel="noopener noreferrer"
               className="block w-full h-32 md:h-40 rounded-2xl overflow-hidden relative group my-8 md:my-12 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
             >
-              {/* 广告背景（使用渐变色模拟 Banner） */}
               <div className={`absolute inset-0 bg-gradient-to-r ${
                 idx % 3 === 0 ? 'from-indigo-600 to-purple-700' : 
                 idx % 3 === 1 ? 'from-blue-600 to-cyan-600' : 
                 'from-emerald-600 to-teal-700'
               } transition-transform duration-700 group-hover:scale-105`}></div>
               
-              {/* 装饰性纹理 */}
               <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
 
-              {/* 广告内容文字 */}
               <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4 z-10">
                 <div className="flex items-center space-x-2 mb-1">
                   <Zap size={18} className="text-yellow-300 fill-current animate-pulse"/>
@@ -163,7 +185,6 @@ const Home: React.FC<Props> = ({ artworks }) => {
                 </div>
               </div>
 
-              {/* 广告标识 */}
               <div className="absolute top-0 right-0 bg-black/30 text-white text-[10px] px-2 py-1 rounded-bl-lg backdrop-blur-sm z-20">
                 广告
               </div>
