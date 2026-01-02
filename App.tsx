@@ -30,7 +30,7 @@ const App: React.FC = () => {
       id: 'admin-01',
       name: '管理员',
       email: 'admin@fuhung.cn',
-      password: 'xiao1988HB', // 补充管理员密码记录
+      password: 'xiao1988HB',
       role: UserRole.ADMIN,
       favorites: [],
       isMarketingAuthorized: false
@@ -60,6 +60,13 @@ const App: React.FC = () => {
     if (isRegister) {
       setAllUsers(prev => [...prev, user]);
     }
+  };
+
+  // 新增：处理密码重置
+  const handlePasswordReset = (email: string, newPass: string) => {
+    setAllUsers(prev => prev.map(u => 
+      u.email === email ? { ...u, password: newPass } : u
+    ));
   };
 
   const logout = () => setCurrentUser(null);
@@ -111,8 +118,18 @@ const App: React.FC = () => {
               } 
             />
             
-            {/* 修改点：将 allUsers 传递给 Auth 组件，用于登录校验 */}
-            <Route path="/login" element={<Auth onAuthSuccess={handleAuthSuccess} users={allUsers} />} />
+            {/* 修改点：传递 handlePasswordReset 给 Auth */}
+            <Route 
+              path="/login" 
+              element={
+                <Auth 
+                  onAuthSuccess={handleAuthSuccess} 
+                  users={allUsers} 
+                  onPasswordReset={handlePasswordReset} 
+                />
+              } 
+            />
+            
             <Route path="/terms" element={<Terms />} />
             
             <Route 
