@@ -7,6 +7,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  password?: string; // 新增：保存用户密码
   role: UserRole;
   favorites: string[]; // IDs of favorite artworks
   isMarketingAuthorized: boolean;
@@ -21,7 +22,7 @@ export interface Artwork {
   category: string;
   material: string;
   dimensions: string;
-  creationYear?: string; // 新增：创作年份
+  creationYear?: string;
   
   hammerPrice: number;
   estimatedPriceMin: number;
