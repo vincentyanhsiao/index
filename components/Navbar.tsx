@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { User, UserRole } from '../types';
-import { Menu, X, Search, User as UserIcon, LogOut, Shield, Crown, ScanLine, MessageCircle } from 'lucide-react';
-// ✅ 引入二维码图片 (确保 src/assets/vip_qrcode.jpg 存在)
+import { Menu, X, Search, User as UserIcon, LogOut, Shield, Crown, ScanLine, MessageCircle, Heart } from 'lucide-react';
+// ✅ 引入二维码图片
 import vipQrCodeImg from '../assets/vip_qrcode.jpg';
 
 interface Props {
@@ -13,7 +13,7 @@ interface Props {
 const Navbar: React.FC<Props> = ({ user, onLogout }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [showContactModal, setShowContactModal] = useState(false); // ⚠️ 新增：控制联系弹窗
+  const [showContactModal, setShowContactModal] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -35,7 +35,7 @@ const Navbar: React.FC<Props> = ({ user, onLogout }) => {
     navigate('/');
   };
 
-  // ⚠️ 联系我们弹窗组件
+  // 联系我们弹窗组件
   const ContactModal = (
     <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
       <div className="bg-white rounded-3xl p-8 max-w-sm w-full relative shadow-2xl animate-in slide-in-from-bottom-8 duration-300">
@@ -101,11 +101,10 @@ const Navbar: React.FC<Props> = ({ user, onLogout }) => {
             <div className="flex items-center space-x-6 text-sm font-bold text-gray-600">
               <Link to="/" className="hover:text-black transition">首页</Link>
               
-              {/* ⚠️ 已移除“数据查询”链接 */}
+              {/* ✅ 市场指数 (保留并改名) */}
+              <Link to="/market" className="hover:text-black transition">市场指数</Link>
               
-              <Link to="/favorites" className="hover:text-black transition">我的收藏</Link>
-              
-              {/* ⚠️ 新增：联系我们按钮 */}
+              {/* ✅ 联系我们 (保留) */}
               <button 
                 onClick={() => setShowContactModal(true)} 
                 className="hover:text-blue-600 transition flex items-center gap-1"
@@ -117,9 +116,7 @@ const Navbar: React.FC<Props> = ({ user, onLogout }) => {
             <div className="h-4 w-px bg-gray-300/50"></div>
 
             <div className="flex items-center space-x-4">
-              <Link to="/search" className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition">
-                <Search size={20} />
-              </Link>
+              {/* 🗑️ 已移除：数据搜索图标 (因为首页已有搜索) */}
               
               {user ? (
                 <div className="relative group">
@@ -136,6 +133,13 @@ const Navbar: React.FC<Props> = ({ user, onLogout }) => {
                       <p className="text-xs text-gray-400">登录账号</p>
                       <p className="text-sm font-bold text-gray-900 truncate">{user.email}</p>
                     </div>
+                    
+                    {/* ✅ 将"我的收藏"移入下拉菜单，保证功能不丢失 */}
+                    <Link to="/favorites" className="flex items-center space-x-3 px-4 py-3 text-sm font-bold text-gray-700 hover:bg-gray-50 rounded-xl transition">
+                        <Heart size={16} className="text-red-500" />
+                        <span>我的收藏</span>
+                    </Link>
+
                     {user.role === UserRole.ADMIN && (
                       <Link to="/admin" className="flex items-center space-x-3 px-4 py-3 text-sm font-bold text-gray-700 hover:bg-gray-50 rounded-xl transition">
                         <Shield size={16} className="text-blue-600" />
@@ -179,9 +183,12 @@ const Navbar: React.FC<Props> = ({ user, onLogout }) => {
         <div className="fixed inset-0 z-40 bg-white pt-24 px-6 md:hidden animate-in slide-in-from-top-10 duration-200">
           <div className="flex flex-col space-y-6 text-lg font-bold text-gray-800">
             <Link to="/" onClick={() => setIsMenuOpen(false)} className="py-2 border-b border-gray-100">首页</Link>
+            
+            {/* 移动端：市场指数 */}
+            <Link to="/index" onClick={() => setIsMenuOpen(false)} className="py-2 border-b border-gray-100">市场指数</Link>
+            
             <Link to="/favorites" onClick={() => setIsMenuOpen(false)} className="py-2 border-b border-gray-100">我的收藏</Link>
             
-            {/* ⚠️ 移动端也改为联系弹窗 */}
             <button onClick={() => { setIsMenuOpen(false); setShowContactModal(true); }} className="py-2 border-b border-gray-100 text-left flex items-center justify-between">
                 <span>联系我们</span>
                 <MessageCircle size={18} className="text-gray-400"/>
