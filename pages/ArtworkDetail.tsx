@@ -4,6 +4,9 @@ import { Artwork, User, Advertisement } from '../types';
 import ArtworkCard from '../components/ArtworkCard';
 import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, ArrowRight, Heart, ExternalLink, Zap, Lock, X, ScanLine } from 'lucide-react';
 
+// ✅ 引入图片：从 pages 目录往上一级(../) 找到 assets 目录
+import vipQrCodeImg from '../assets/vip_qrcode.jpg';
+
 interface Props {
   artworks: Artwork[];
   user?: User | null;
@@ -18,12 +21,12 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
 
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [showImageModal, setShowImageModal] = useState(false); // 图片大图 Modal
-  const [showVipModal, setShowVipModal] = useState(false);     // ⚠️ 新增：VIP 引导 Modal
+  const [showVipModal, setShowVipModal] = useState(false);     // VIP 引导 Modal
   const [isCopied, setIsCopied] = useState(false);
 
   const isFavorite = user?.favorites.includes(artwork?.id || '');
 
-  // ⚠️ 权限判断
+  // 权限判断：管理员或VIP可见价格
   const canViewPrice = user?.role === 'ADMIN' || user?.isVip;
 
   useEffect(() => {
@@ -94,7 +97,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
     if (onToggleFavorite) onToggleFavorite(artwork.id);
   };
   
-  // ⚠️ 点击 VIP 锁形图标时触发
+  // 点击 VIP 锁形图标时触发
   const handleVipClick = () => {
       setShowVipModal(true);
   };
@@ -167,7 +170,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
             </div>
           </div>
 
-          {/* ⚠️ 价格显示区域 - VIP 逻辑 */}
+          {/* 价格显示区域 - VIP 逻辑 */}
           <div className="bg-gray-50 rounded-2xl p-6 space-y-4 mb-8 border border-gray-100 relative overflow-hidden">
             <div className="flex items-baseline justify-between border-b border-gray-200 pb-4">
               <span className="text-gray-500 font-medium">拍卖成交价:</span>
@@ -261,7 +264,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
         </div>
       )}
 
-      {/* ⚠️ --- VIP 专属引导 Modal --- */}
+      {/* --- VIP 专属引导 Modal --- */}
       {showVipModal && (
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full relative shadow-2xl animate-in slide-in-from-bottom-8 duration-300">
@@ -283,19 +286,18 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
                 <div>
                     <h3 className="text-2xl font-black text-gray-900 mb-3">解锁真实成交价格</h3>
                     <p className="text-gray-500 text-sm leading-relaxed px-2">
-                        升级为 <span className="text-amber-600 font-bold">FUHUNG VIP</span>，即可查看<br/>
+                        升级为 <span className="text-amber-600 font-bold">VIP高级会员</span>，即可查看<br/>
                         全球拍卖行的<span className="text-gray-900 font-bold">历史成交记录</span>与<span className="text-gray-900 font-bold">估值报告</span>
                     </p>
                 </div>
 
                 {/* 扫码区域 */}
                 <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 inline-block group cursor-pointer" onClick={() => setShowVipModal(false)}>
-                    {/* ⚠️ 请确保您已将图片命名为 vip_qrcode.jpg 并放入 public 文件夹 */}
+                    {/* 使用导入的图片变量 */}
                     <img 
-                        src="/vip_qrcode.jpg" 
+                        src={vipQrCodeImg} 
                         alt="Contact Admin" 
                         className="w-40 h-40 object-contain mix-blend-darken filter group-hover:contrast-125 transition-all"
-                        onError={(e) => {e.currentTarget.src = 'https://via.placeholder.com/160x160?text=QR+Code'}}
                     />
                     <div className="flex items-center justify-center text-xs text-gray-500 mt-4 font-medium bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-100">
                        <ScanLine size={14} className="mr-1.5 text-blue-500" />
