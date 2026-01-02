@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Artwork, IndexPoint } from '../types';
-import { BarChart3, TrendingUp, TrendingDown, Info, Calendar, Download, Trophy, Medal, ChevronRight, Filter, Clock } from 'lucide-react';
+import { BarChart3, TrendingUp, TrendingDown, Info, Calendar, Trophy, Medal, ChevronRight, Filter, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface Props {
@@ -18,9 +18,9 @@ const MarketIndex: React.FC<Props> = ({ artworks }) => {
   const categories = ['all', ...Array.from(new Set(artworks.map(a => a.category)))];
   const years = ['all', ...Array.from(new Set(artworks.map(a => a.auctionDate.substring(0, 4)))).sort().reverse()];
 
-  // --- 核心优化算法开始 ---
+  // --- 核心优化算法 ---
 
-  // 辅助函数：计算中位数 (新增)
+  // 辅助函数：计算中位数
   const calculateMedian = (values: number[]) => {
     if (values.length === 0) return 0;
     const sorted = [...values].sort((a, b) => a - b);
@@ -28,7 +28,7 @@ const MarketIndex: React.FC<Props> = ({ artworks }) => {
     return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
   };
 
-  // Index Calculation Logic (Optimized)
+  // Index Calculation Logic
   const indexData = useMemo(() => {
     // 1. 筛选数据
     const filtered = artworks.filter(a => 
@@ -75,25 +75,22 @@ const MarketIndex: React.FC<Props> = ({ artworks }) => {
       // 交易量指数：当前量 / 基准量
       const volumeRatio = stat.volume / baseVolume;
       
-      // 综合指数算法：价格权重 70%，成交量权重 30% (调整了权重，更看重价格)
-      // 并标准化为 1000 点起步
+      // 综合指数算法：价格权重 70%，成交量权重 30%
       let indexValue = Math.round((priceRatio * 0.7 + volumeRatio * 0.3) * 1000);
 
-      // 异常处理：如果没有成交，设为0或保持上月（这里简单设为0）
+      // 异常处理
       if (stat.volume === 0) indexValue = 0;
 
       return { 
         date: stat.date, 
         value: indexValue, 
         volume: stat.volume, 
-        avgPrice: stat.price // 这里存储的是中位数价格，用于显示
+        avgPrice: stat.price 
       } as IndexPoint;
     });
   }, [artworks, selectedCategory, selectedYear]);
 
-  // --- 核心优化算法结束 ---
-
-  // Ranking Logic (New)
+  // Ranking Logic
   const rankingList = useMemo(() => {
     return artworks
       .filter(a => 
@@ -105,7 +102,7 @@ const MarketIndex: React.FC<Props> = ({ artworks }) => {
   }, [artworks, selectedCategory, selectedYear]);
 
   const latestIndex = indexData[indexData.length - 1]?.value || 0;
-  const prevIndex = indexData[indexData.length - 2]?.value || 1000; // 默认为基准分
+  const prevIndex = indexData[indexData.length - 2]?.value || 1000;
   const changePercent = ((latestIndex - prevIndex) / (prevIndex || 1) * 100).toFixed(2);
   const isUp = latestIndex >= prevIndex;
 
@@ -114,7 +111,7 @@ const MarketIndex: React.FC<Props> = ({ artworks }) => {
     if (indexData.length < 2) return <div className="h-64 flex items-center justify-center text-gray-400 bg-gray-50 rounded-2xl">该筛选条件下数据不足，无法生成趋势图</div>;
     const maxVal = Math.max(...indexData.map(d => d.value)) * 1.2;
     const minVal = Math.min(...indexData.map(d => d.value)) * 0.8;
-    const range = maxVal - minVal || 1; // 防止 range 为 0
+    const range = maxVal - minVal || 1;
     const width = 800;
     const height = 300;
     const padding = 40;
@@ -139,7 +136,6 @@ const MarketIndex: React.FC<Props> = ({ artworks }) => {
             );
           })}
           {indexData.map((d, i) => {
-            // 简单的标签显示逻辑，避免重叠
             if (indexData.length > 10 && i % Math.ceil(indexData.length / 6) !== 0) return null;
             const x = padding + (i / (indexData.length - 1)) * (width - padding * 2);
             return <text key={i} x={x} y={height - 15} textAnchor="middle" className="text-[10px] fill-gray-400 font-medium">{d.date}</text>;
@@ -258,7 +254,7 @@ const MarketIndex: React.FC<Props> = ({ artworks }) => {
         </div>
       ) : (
         <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="p-8 border-b flex items-center justify-between bg-gray-50/50">
+          <div className="p-8 border-b bg-gray-50/50">
             <div>
               <h3 className="text-2xl font-black text-gray-900 flex items-center">
                 <Trophy className="text-yellow-500 mr-3" size={28} />
@@ -266,10 +262,7 @@ const MarketIndex: React.FC<Props> = ({ artworks }) => {
               </h3>
               <p className="text-sm text-gray-400 mt-1">按成交金额降序排列，展示市场的头部交易动态</p>
             </div>
-            <button className="flex items-center space-x-2 text-blue-600 font-bold hover:underline">
-              <Download size={18} />
-              <span>导出报表</span>
-            </button>
+            {/* 已移除导出按钮 */}
           </div>
 
           <div className="overflow-x-auto">
