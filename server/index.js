@@ -12,8 +12,8 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(cors());
 
-// 1. 连接数据库
-const dbUrl = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/artworks_db';
+// 1. 连接数据库 (保持您现在的内网配置)
+const dbUrl = process.env.MONGODB_URI || 'mongodb://mongo:mA93iKPVx6W4Nsz5ulceg1jH0XI72C8Y@sjc1.clusters.zeabur.com:26084';
 mongoose.connect(dbUrl)
   .then(() => console.log('数据库连接成功'))
   .catch(err => console.error('数据库连接失败', err));
@@ -44,22 +44,25 @@ const ArtworkSchema = new mongoose.Schema({
 });
 const ArtworkModel = mongoose.model('Artwork', ArtworkSchema);
 
-// 用户 Schema (基础版，无VIP字段)
+// 用户 Schema (⚠️ 新增 VIP 字段)
 const UserSchema = new mongoose.Schema({
   id: String,
   name: String,
   email: { type: String, unique: true },
-  password: String, // 注意：生产环境建议加密存储
+  password: String,
   role: String,
   favorites: [String],
   isMarketingAuthorized: Boolean,
+  // --- 新增 VIP 字段 ---
+  isVip: { type: Boolean, default: false },
+  vipExpireAt: Date, // 会员到期时间
   createdAt: { type: Date, default: Date.now }
 });
 const UserModel = mongoose.model('User', UserSchema);
 
 // --- API 接口 ---
 
-// 1. 艺术品接口 (完全公开，无价格隐藏)
+// 艺术品接口
 app.get('/api/artworks', async (req, res) => {
   try {
     const artworks = await ArtworkModel.find();
@@ -89,9 +92,7 @@ app.delete('/api/artworks/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }) }
 });
 
-// 2. 用户认证接口 (必须补全这些，否则前端登录会报错)
-
-// 注册
+// 用户认证接口
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { email } = req.body;
@@ -104,18 +105,18 @@ app.post('/api/auth/register', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }) }
 });
 
-// 登录
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     
-    // 管理员后门 (保留这个，方便您管理)
+    // 管理员后门
     if (email === 'admin@fuhung.cn' && password === 'xiao1988HB') {
        return res.json({
          id: 'admin-01',
          name: '超级管理员',
          email: 'admin@fuhung.cn',
          role: 'ADMIN',
+         isVip: true, // 管理员天生是 VIP
          favorites: [],
          isMarketingAuthorized: false
        });
@@ -123,26 +124,41 @@ app.post('/api/auth/login', async (req, res) => {
 
     const user = await UserModel.findOne({ email, password });
     if (!user) return res.status(401).json({ error: '账号或密码错误' });
+    
+    // 检查 VIP 是否过期
+    if (user.isVip && user.vipExpireAt && new Date() > new Date(user.vipExpireAt)) {
+        user.isVip = false; // 过期了自动降级
+        await user.save();
+    }
+    
     res.json(user);
   } catch (e) { res.status(500).json({ error: e.message }) }
 });
 
-// 重置密码
-app.post('/api/auth/reset-password', async (req, res) => {
-  try {
-    const { email, newPassword } = req.body;
-    const user = await UserModel.findOneAndUpdate({ email }, { password: newPassword }, { new: true });
-    if (!user) return res.status(404).json({ error: '邮箱未注册' });
-    res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }) }
-});
-
-// 获取用户列表 (管理员用)
 app.get('/api/users', async (req, res) => {
   try {
     const users = await UserModel.find();
     res.json(users);
   } catch (e) { res.status(500).json({ error: e.message }) }
+});
+
+// ⚠️ 新增接口：管理员给用户开通/取消 VIP
+app.put('/api/users/:id/vip', async (req, res) => {
+    try {
+      const { isVip, months } = req.body; // months: 开通几个月
+      let updateData = { isVip };
+      
+      if (isVip && months) {
+          const date = new Date();
+          date.setMonth(date.getMonth() + months); // 当前时间 + N个月
+          updateData.vipExpireAt = date;
+      } else if (!isVip) {
+          updateData.vipExpireAt = null;
+      }
+  
+      const user = await UserModel.findOneAndUpdate({ id: req.params.id }, updateData, { new: true });
+      res.json(user);
+    } catch (e) { res.status(500).json({ error: e.message }) }
 });
 
 // 托管前端
@@ -151,7 +167,7 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist', 'index.html'));
 });
 
-const PORT = process.env.PORT || 80;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
