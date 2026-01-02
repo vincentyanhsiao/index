@@ -38,26 +38,17 @@ const App: React.FC = () => {
   const login = (user: User) => setCurrentUser(user);
   const logout = () => setCurrentUser(null);
   
-  // 核心功能：处理收藏/取消收藏
+  // 收藏逻辑
   const toggleFavorite = (artworkId: string) => {
     if (!currentUser) return;
-
     const isFavorite = currentUser.favorites.includes(artworkId);
-    let newFavorites;
+    const newFavorites = isFavorite 
+      ? currentUser.favorites.filter(id => id !== artworkId)
+      : [...currentUser.favorites, artworkId];
 
-    if (isFavorite) {
-      newFavorites = currentUser.favorites.filter(id => id !== artworkId);
-    } else {
-      newFavorites = [...currentUser.favorites, artworkId];
-    }
-
-    // 更新当前用户信息
-    setCurrentUser({
-      ...currentUser,
-      favorites: newFavorites
-    });
+    setCurrentUser({ ...currentUser, favorites: newFavorites });
   };
-  
+
   const updateArtwork = (updatedArtwork: Artwork) => {
     setArtworks(prev => prev.map(a => a.id === updatedArtwork.id ? updatedArtwork : a));
   };
@@ -80,7 +71,7 @@ const App: React.FC = () => {
             <Route path="/search" element={<SearchResults artworks={artworks} />} />
             <Route path="/index" element={<MarketIndex artworks={artworks} />} />
             
-            {/* 核心修改：将 user 和 toggleFavorite 传递给详情页 */}
+            {/* 传递 user 和 toggleFavorite */}
             <Route 
               path="/artwork/:id" 
               element={
