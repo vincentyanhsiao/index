@@ -10,6 +10,7 @@ import Auth from './pages/Auth';
 import AdminDashboard from './pages/AdminDashboard';
 import MarketIndex from './pages/MarketIndex';
 import MyFavorites from './pages/MyFavorites';
+import Terms from './pages/Terms'; // 1. 引入新页面
 
 const STORAGE_KEYS = {
   USER: 'artsy_user',
@@ -38,7 +39,6 @@ const App: React.FC = () => {
   const login = (user: User) => setCurrentUser(user);
   const logout = () => setCurrentUser(null);
   
-  // 收藏逻辑
   const toggleFavorite = (artworkId: string) => {
     if (!currentUser) return;
     const isFavorite = currentUser.favorites.includes(artworkId);
@@ -71,7 +71,6 @@ const App: React.FC = () => {
             <Route path="/search" element={<SearchResults artworks={artworks} />} />
             <Route path="/index" element={<MarketIndex artworks={artworks} />} />
             
-            {/* 传递 user 和 toggleFavorite */}
             <Route 
               path="/artwork/:id" 
               element={
@@ -84,6 +83,9 @@ const App: React.FC = () => {
             />
             
             <Route path="/login" element={<Auth onAuthSuccess={login} />} />
+            
+            {/* 2. 添加协议页路由 */}
+            <Route path="/terms" element={<Terms />} />
             
             <Route 
               path="/favorites" 
