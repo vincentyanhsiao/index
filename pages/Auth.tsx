@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { User, UserRole } from '../types';
-import { Mail, Lock, ShieldCheck, ArrowRight, User as UserIcon, CheckCircle } from 'lucide-react';
+import { Mail, Lock, ShieldCheck, ArrowRight, User as UserIcon, CheckCircle, RefreshCw } from 'lucide-react';
 
 interface Props {
   onAuthSuccess: (user: User, isRegister: boolean) => void;
-  users: User[]; // 新增：接收用户列表数据
+  users: User[];
+  // 新增：接收重置密码的函数
+  onPasswordReset: (email: string, newPass: string) => void;
 }
 
-type AuthMode = 'LOGIN' | 'REGISTER';
+// 新增 FORGOT 模式
+type AuthMode = 'LOGIN' | 'REGISTER' | 'FORGOT';
 
-const Auth: React.FC<Props> = ({ onAuthSuccess, users }) => {
+const Auth: React.FC<Props> = ({ onAuthSuccess, users, onPasswordReset }) => {
   const navigate = useNavigate();
   const [mode, setMode] = useState<AuthMode>('LOGIN');
   
@@ -18,6 +21,7 @@ const Auth: React.FC<Props> = ({ onAuthSuccess, users }) => {
     name: '',
     email: '',
     password: '',
+    confirmPassword: '', // 新增：确认密码字段
     agreed: false
   });
   
@@ -27,14 +31,40 @@ const Auth: React.FC<Props> = ({ onAuthSuccess, users }) => {
     e.preventDefault();
     setError('');
 
+    // --- 找回密码逻辑 ---
+    if (mode === 'FORGOT') {
+      if (!formData.email || !formData.password || !formData.confirmPassword) {
+        setError('请填写完整信息');
+        return;
+      }
+      
+      // 1. 校验邮箱是否存在
+      const userExists = users.some(u => u.email === formData.email);
+      if (!userExists) {
+        setError('该邮箱未注册');
+        return;
+      }
+
+      // 2. 校验两次密码是否一致 (即"重新输入2次相同的验证码/密码")
+      if (formData.password !== formData.confirmPassword) {
+        setError('两次输入的密码不一致，请重新输入');
+        return;
+      }
+
+      // 3. 执行重置
+      onPasswordReset(formData.email, formData.password);
+      alert('密码重置成功！请使用新密码登录。');
+      setMode('LOGIN'); // 切换回登录页
+      return;
+    }
+
+    // --- 登录逻辑 ---
     if (mode === 'LOGIN') {
-      // --- 登录逻辑 ---
       if (!formData.email || !formData.password) {
         setError('请输入账号和密码');
         return;
       }
 
-      // 1. 管理员强制校验 (最高优先级)
       if (formData.email === 'admin@fuhung.cn') {
         if (formData.password === 'xiao1988HB') {
           const adminUser: User = {
@@ -54,16 +84,12 @@ const Auth: React.FC<Props> = ({ onAuthSuccess, users }) => {
         }
       }
 
-      // 2. 普通会员真实校验
-      // 在用户列表中查找邮箱和密码都匹配的用户
       const foundUser = users.find(u => u.email === formData.email && u.password === formData.password);
 
       if (foundUser) {
-        // 登录成功
         onAuthSuccess(foundUser, false);
         navigate('/');
       } else {
-        // 登录失败：判断是账号不存在还是密码错
         const emailExists = users.some(u => u.email === formData.email);
         if (emailExists) {
           setError('密码错误，请重试');
@@ -75,7 +101,7 @@ const Auth: React.FC<Props> = ({ onAuthSuccess, users }) => {
     } else {
       // --- 注册逻辑 ---
       if (!formData.name || !formData.email || !formData.password) {
-        setError('请填写完整的注册信息（包括密码）');
+        setError('请填写完整的注册信息');
         return;
       }
       
@@ -84,19 +110,17 @@ const Auth: React.FC<Props> = ({ onAuthSuccess, users }) => {
         return;
       }
 
-      // 检查邮箱是否已被注册
       const isDuplicate = users.some(u => u.email === formData.email);
       if (isDuplicate) {
         setError('该邮箱已被注册，请直接登录');
         return;
       }
 
-      // 注册成功
       const newUser: User = {
         id: 'user-' + Math.random().toString(36).substr(2, 9),
         name: formData.name,
         email: formData.email,
-        password: formData.password, // 保存密码
+        password: formData.password,
         role: UserRole.USER,
         favorites: [],
         isMarketingAuthorized: true
@@ -135,10 +159,10 @@ const Auth: React.FC<Props> = ({ onAuthSuccess, users }) => {
         <div className="bg-white p-8">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-gray-900">
-              {mode === 'LOGIN' ? '欢迎回来' : '加入 FUHUNG'}
+              {mode === 'LOGIN' ? '欢迎回来' : mode === 'REGISTER' ? '加入 FUHUNG' : '重置密码'}
             </h2>
             <p className="text-gray-400 text-sm mt-1">
-              {mode === 'LOGIN' ? '登录以管理您的收藏和偏好' : '注册即刻享受会员专属权益'}
+              {mode === 'LOGIN' ? '登录以管理您的收藏和偏好' : mode === 'REGISTER' ? '注册即刻享受会员专属权益' : '验证身份并设置新密码'}
             </p>
           </div>
         
@@ -149,7 +173,6 @@ const Auth: React.FC<Props> = ({ onAuthSuccess, users }) => {
               </div>
             )}
 
-            {/* 注册模式：显示姓名输入框 */}
             {mode === 'REGISTER' && (
               <div className="space-y-1">
                 <label className="text-xs font-bold text-gray-500 ml-1">姓名</label>
@@ -166,7 +189,6 @@ const Auth: React.FC<Props> = ({ onAuthSuccess, users }) => {
               </div>
             )}
 
-            {/* 公共：邮箱输入框 */}
             <div className="space-y-1">
               <label className="text-xs font-bold text-gray-500 ml-1">
                 {mode === 'LOGIN' ? '账号 / 邮箱' : '电子邮箱'}
@@ -176,31 +198,46 @@ const Auth: React.FC<Props> = ({ onAuthSuccess, users }) => {
                 <input
                   type="email"
                   className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 outline-none transition-all"
-                  placeholder={mode === 'LOGIN' ? "请输入邮箱或管理员账号" : "请输入您的常用邮箱"}
+                  placeholder={mode === 'LOGIN' ? "请输入邮箱或管理员账号" : "请输入您的注册邮箱"}
                   value={formData.email}
                   onChange={e => setFormData({...formData, email: e.target.value})}
                 />
               </div>
             </div>
 
-            {/* 密码框：现在注册和登录都需要显示密码框 */}
             <div className="space-y-1">
               <label className="text-xs font-bold text-gray-500 ml-1">
-                {mode === 'LOGIN' ? '密码' : '设置密码'}
+                {mode === 'LOGIN' ? '密码' : mode === 'FORGOT' ? '新密码' : '设置密码'}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input
                   type="password"
                   className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 outline-none transition-all"
-                  placeholder={mode === 'LOGIN' ? "请输入密码" : "请设置登录密码"}
+                  placeholder={mode === 'FORGOT' ? "请输入新密码" : "请输入密码"}
                   value={formData.password}
                   onChange={e => setFormData({...formData, password: e.target.value})}
                 />
               </div>
             </div>
 
-            {/* 注册模式：协议勾选 */}
+            {/* 找回密码模式：确认密码输入框 */}
+            {mode === 'FORGOT' && (
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-500 ml-1">确认新密码</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <input
+                    type="password"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 outline-none transition-all"
+                    placeholder="请再次输入新密码"
+                    value={formData.confirmPassword}
+                    onChange={e => setFormData({...formData, confirmPassword: e.target.value})}
+                  />
+                </div>
+              </div>
+            )}
+
             {mode === 'REGISTER' && (
               <label className="flex items-start space-x-2 cursor-pointer group">
                 <div className="relative flex items-center">
@@ -222,9 +259,37 @@ const Auth: React.FC<Props> = ({ onAuthSuccess, users }) => {
               type="submit"
               className="w-full py-4 bg-gray-900 text-white rounded-xl font-bold flex items-center justify-center space-x-2 hover:bg-black active:scale-95 transition-all shadow-lg shadow-gray-200"
             >
-              <span>{mode === 'LOGIN' ? '立即登录' : '立即注册'}</span>
+              <span>
+                {mode === 'LOGIN' ? '立即登录' : mode === 'REGISTER' ? '立即注册' : '重置密码'}
+              </span>
               <ArrowRight size={18} />
             </button>
+
+            {/* 登录模式下显示“忘记密码”链接 */}
+            {mode === 'LOGIN' && (
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setMode('FORGOT'); setError(''); }}
+                  className="text-sm text-gray-400 hover:text-gray-600 transition flex items-center justify-center mx-auto"
+                >
+                  <RefreshCw size={14} className="mr-1" /> 忘记密码？
+                </button>
+              </div>
+            )}
+
+            {/* 找回密码模式下显示“返回登录” */}
+            {mode === 'FORGOT' && (
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setMode('LOGIN'); setError(''); }}
+                  className="text-sm text-blue-600 font-bold hover:underline transition"
+                >
+                  返回登录
+                </button>
+              </div>
+            )}
           </form>
         </div>
       </div>
