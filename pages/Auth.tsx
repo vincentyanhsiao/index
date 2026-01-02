@@ -33,22 +33,30 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
         return;
       }
 
-      // 管理员后门 (保留)
-      if (formData.email.toLowerCase().includes('admin')) {
-        const adminUser: User = {
-          id: 'admin-01',
-          name: '管理员',
-          email: formData.email,
-          role: UserRole.ADMIN,
-          favorites: [],
-          isMarketingAuthorized: false
-        };
-        onAuthSuccess(adminUser, false);
-        navigate('/admin');
-        return;
+      // 1. 管理员账号强制校验 (安全性升级)
+      // 只有账号和密码完全匹配，才能以管理员身份登录
+      if (formData.email === 'admin@fuhung.cn') {
+        if (formData.password === 'xiao1988HB') {
+          const adminUser: User = {
+            id: 'admin-01',
+            name: '超级管理员',
+            email: formData.email,
+            role: UserRole.ADMIN,
+            favorites: [],
+            isMarketingAuthorized: false
+          };
+          onAuthSuccess(adminUser, false); // false 表示非注册
+          navigate('/admin');
+          return;
+        } else {
+          setError('管理员密码错误');
+          return;
+        }
       }
 
-      // 模拟普通用户登录
+      // 2. 模拟普通用户登录
+      // 如果不是管理员账号，则视为普通用户登录
+      // (在真实项目中，这里会调用后端 API 验证普通用户的密码)
       const mockUser: User = {
         id: 'user-' + Math.random().toString(36).substr(2, 5),
         name: formData.email.split('@')[0], // 默认显示邮箱前缀
@@ -62,20 +70,18 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
       navigate('/');
       
     } else {
-      // --- 注册逻辑 (已简化) ---
-      // 1. 校验必填项 (移除了验证码)
+      // --- 注册逻辑 ---
       if (!formData.name || !formData.email) {
         setError('请填写完整的注册信息');
         return;
       }
       
-      // 2. 校验协议勾选
       if (!formData.agreed) {
         setError('请阅读并同意服务协议');
         return;
       }
 
-      // 3. 注册成功
+      // 注册成功
       const newUser: User = {
         id: 'user-' + Math.random().toString(36).substr(2, 9),
         name: formData.name,
