@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Artwork, User, Advertisement } from '../types';
-import { Plus, Search, Edit3, Trash2, Image as ImageIcon, Upload, Users, Monitor, ExternalLink, Save, ArrowLeft } from 'lucide-react';
+import { Plus, Search, Edit3, Trash2, Image as ImageIcon, Upload, Users, Monitor, ExternalLink, Save, ArrowLeft, X } from 'lucide-react';
 
 interface Props {
   artworks: Artwork[];
@@ -19,6 +19,8 @@ type AdminTab = 'ARTWORKS' | 'USERS' | 'ADS';
 const AdminDashboard: React.FC<Props> = ({ artworks, allUsers, ads, onUpdate, onDelete, onAdd, onBatchImport, onUpdateAd }) => {
   const [currentTab, setCurrentTab] = useState<AdminTab>('ARTWORKS');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // 编辑/新增状态管理
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [formData, setFormData] = useState<Partial<Artwork>>({});
@@ -27,7 +29,10 @@ const AdminDashboard: React.FC<Props> = ({ artworks, allUsers, ads, onUpdate, on
   const [editingAdId, setEditingAdId] = useState<string | null>(null);
   const [adFormData, setAdFormData] = useState<Partial<Advertisement>>({});
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // 文件输入框引用 (区分批量导入和单图上传)
+  const batchFileInputRef = useRef<HTMLInputElement>(null);
+  const imageUploadRef = useRef<HTMLInputElement>(null);
+  const adImageUploadRef = useRef<HTMLInputElement>(null);
 
   const filteredArtworks = artworks.filter(a => 
     a.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -39,18 +44,25 @@ const AdminDashboard: React.FC<Props> = ({ artworks, allUsers, ads, onUpdate, on
     setEditingId(art.id);
     setFormData(art);
     setIsAdding(false);
+    // 滚动到顶部方便查看右侧
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = (id: string) => {
     if (window.confirm('确定要删除这条艺术品数据吗？此操作不可撤销。')) {
       onDelete(id);
+      // 如果正在编辑被删除的项，清空表单
+      if (editingId === id) {
+        setEditingId(null);
+        setFormData({});
+      }
     }
   };
 
   const handleSave = () => {
     // 基础校验
     if (!formData.title || !formData.artist || !formData.hammerPrice || !formData.thumbnail) {
-      alert('作品名称、艺术家、成交价、主图链接为必填项');
+      alert('作品名称、艺术家、成交价、主图为必填项');
       return;
     }
 
@@ -90,6 +102,33 @@ const AdminDashboard: React.FC<Props> = ({ artworks, allUsers, ads, onUpdate, on
       setEditingId(null);
     }
     setFormData({});
+    alert('保存成功！');
+  };
+
+  // 图片上传处理 (转 Base64)
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isAd: boolean = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 限制图片大小 (例如 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('图片大小不能超过 2MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      if (isAd) {
+        setAdFormData(prev => ({ ...prev, imageUrl: base64String }));
+      } else {
+        setFormData(prev => ({ ...prev, thumbnail: base64String }));
+      }
+    };
+    reader.readAsDataURL(file);
+    
+    // 清空 input 允许重复选择同一文件
+    e.target.value = ''; 
   };
 
   const handleExportUsers = () => {
@@ -112,7 +151,7 @@ const AdminDashboard: React.FC<Props> = ({ artworks, allUsers, ads, onUpdate, on
     document.body.removeChild(link);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBatchFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -150,7 +189,7 @@ const AdminDashboard: React.FC<Props> = ({ artworks, allUsers, ads, onUpdate, on
       } catch (err) {
         alert('导入失败：JSON 文件解析错误');
       }
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (batchFileInputRef.current) batchFileInputRef.current.value = '';
     };
     reader.readAsText(file);
   };
@@ -159,6 +198,7 @@ const AdminDashboard: React.FC<Props> = ({ artworks, allUsers, ads, onUpdate, on
   const handleEditAd = (ad: Advertisement) => {
     setEditingAdId(ad.id);
     setAdFormData(ad);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSaveAd = () => {
@@ -166,6 +206,7 @@ const AdminDashboard: React.FC<Props> = ({ artworks, allUsers, ads, onUpdate, on
       onUpdateAd(adFormData as Advertisement);
       setEditingAdId(null);
       setAdFormData({});
+      alert('广告位更新成功！');
     }
   };
 
@@ -206,171 +247,202 @@ const AdminDashboard: React.FC<Props> = ({ artworks, allUsers, ads, onUpdate, on
 
       {/* --- Tab 1: 艺术品管理 --- */}
       {currentTab === 'ARTWORKS' && (
-        <>
-          {/* 只有在非编辑/非添加状态下才显示列表顶部的按钮 */}
-          {!isAdding && !editingId && (
-            <div className="flex justify-end gap-3 mb-6">
-              <button onClick={() => fileInputRef.current?.click()} className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-bold flex items-center space-x-2 hover:bg-gray-50 transition">
-                <Upload size={18} /><span>批量导入</span>
-              </button>
-              <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
-              <button onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ status: 'PUBLISHED' }); }} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center space-x-2 hover:bg-blue-700 transition">
-                <Plus size={20} /><span>发布新数据</span>
-              </button>
-            </div>
-          )}
-
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* 左侧：列表视图 (在编辑模式下依然显示，但在移动端可能需要调整，这里保持桌面端布局) */}
-            <div className={`lg:col-span-2 space-y-4 ${(isAdding || editingId) ? 'hidden lg:block opacity-50 pointer-events-none' : ''}`}>
-              <div className="relative mb-4">
+        <div className="grid lg:grid-cols-3 gap-8 items-start">
+          
+          {/* 左侧：列表视图 (占 2/3) */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="flex items-center justify-between mb-4">
+               <div className="relative flex-grow max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input type="text" className="w-full pl-10 pr-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-100" placeholder="搜索作品..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                <input type="text" className="w-full pl-10 pr-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-100" placeholder="搜索作品或艺术家..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
               </div>
-              <div className="bg-white rounded-2xl border overflow-hidden shadow-sm">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-gray-50 border-b text-gray-500 uppercase tracking-wider">
-                    <tr><th className="px-6 py-4 font-bold">作品详情</th><th className="px-6 py-4 font-bold">成交价</th><th className="px-6 py-4 font-bold">状态</th><th className="px-6 py-4 text-right">操作</th></tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {filteredArtworks.map(art => (
-                      <tr key={art.id} className="hover:bg-gray-50 transition">
-                        <td className="px-6 py-4"><div className="flex items-center space-x-3"><img src={art.thumbnail} className="w-12 h-12 rounded object-cover" /><div><div className="font-bold text-gray-900">{art.title}</div><div className="text-gray-500 text-xs">{art.artist}</div></div></div></td>
-                        <td className="px-6 py-4"><div className="font-bold text-gray-700">¥{art.hammerPrice.toLocaleString()}</div></td>
-                        <td className="px-6 py-4"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${art.status === 'PUBLISHED' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>{art.status === 'PUBLISHED' ? '已上架' : '草稿'}</span></td>
-                        <td className="px-6 py-4 text-right"><div className="flex items-center justify-end space-x-2"><button onClick={() => handleEdit(art)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit3 size={18}/></button><button onClick={() => handleDelete(art.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={18}/></button></div></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            
-            {/* 右侧：编辑/新增表单 (完整版) */}
-            <div className={isAdding || editingId ? "lg:col-span-3 lg:col-start-1" : "lg:col-span-1"}>
-              {(isAdding || editingId) ? (
-                <div className="bg-white rounded-2xl border p-6 md:p-8 shadow-lg sticky top-24 space-y-6 animate-in slide-in-from-right">
-                  <div className="flex items-center justify-between border-b pb-4">
-                    <h3 className="text-xl font-bold">{isAdding ? '发布新艺术品' : '编辑艺术品数据'}</h3>
-                    <button onClick={() => { setIsAdding(false); setEditingId(null); setFormData({}); }} className="text-gray-400 hover:text-gray-600"><ArrowLeft size={24} /></button>
-                  </div>
+              
+              {/* 仅在未编辑状态显示新增按钮，避免混乱 */}
+              {!isAdding && !editingId && (
+                <div className="flex gap-2 ml-4">
+                  <button onClick={() => batchFileInputRef.current?.click()} className="bg-white border border-gray-200 text-gray-700 px-3 py-2 rounded-xl font-bold flex items-center space-x-2 hover:bg-gray-50 text-sm whitespace-nowrap">
+                    <Upload size={16} /><span>导入</span>
+                  </button>
+                  <input type="file" ref={batchFileInputRef} onChange={handleBatchFileChange} accept=".json" className="hidden" />
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* 左侧列：基础信息 */}
-                    <div className="space-y-4">
-                        <h4 className="font-bold text-gray-900 text-sm bg-gray-50 p-2 rounded">基础信息</h4>
-                        <div className="space-y-1">
-                          <label className="text-xs font-bold text-gray-500">作品名称 *</label>
-                          <input className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                              <label className="text-xs font-bold text-gray-500">艺术家 *</label>
-                              <input className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" value={formData.artist || ''} onChange={e => setFormData({...formData, artist: e.target.value})} />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-xs font-bold text-gray-500">创作年份</label>
-                              <input className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" placeholder="如: 1998" value={formData.creationYear || ''} onChange={e => setFormData({...formData, creationYear: e.target.value})} />
-                            </div>
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-xs font-bold text-gray-500">分类 *</label>
-                          <input className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" placeholder="如: 中国书画" value={formData.category || ''} onChange={e => setFormData({...formData, category: e.target.value})} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                              <label className="text-xs font-bold text-gray-500">材质</label>
-                              <input className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" placeholder="如: 设色纸本" value={formData.material || ''} onChange={e => setFormData({...formData, material: e.target.value})} />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-xs font-bold text-gray-500">尺寸</label>
-                              <input className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" placeholder="如: 120x60cm" value={formData.dimensions || ''} onChange={e => setFormData({...formData, dimensions: e.target.value})} />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 右侧列：拍卖信息 */}
-                    <div className="space-y-4">
-                        <h4 className="font-bold text-gray-900 text-sm bg-gray-50 p-2 rounded">拍卖数据</h4>
-                        <div className="space-y-1">
-                          <label className="text-xs font-bold text-gray-500">成交价 (RMB) *</label>
-                          <input type="number" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none font-mono font-bold text-red-600" value={formData.hammerPrice || ''} onChange={e => setFormData({...formData, hammerPrice: Number(e.target.value)})} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                              <label className="text-xs font-bold text-gray-500">估价 Min</label>
-                              <input type="number" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" value={formData.estimatedPriceMin || ''} onChange={e => setFormData({...formData, estimatedPriceMin: Number(e.target.value)})} />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-xs font-bold text-gray-500">估价 Max</label>
-                              <input type="number" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" value={formData.estimatedPriceMax || ''} onChange={e => setFormData({...formData, estimatedPriceMax: Number(e.target.value)})} />
-                            </div>
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-xs font-bold text-gray-500">拍卖行</label>
-                          <input className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" value={formData.auctionHouse || ''} onChange={e => setFormData({...formData, auctionHouse: e.target.value})} />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-xs font-bold text-gray-500">拍卖专场</label>
-                          <input className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" value={formData.auctionSession || ''} onChange={e => setFormData({...formData, auctionSession: e.target.value})} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                              <label className="text-xs font-bold text-gray-500">成交日期</label>
-                              <input type="date" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" value={formData.auctionDate || ''} onChange={e => setFormData({...formData, auctionDate: e.target.value})} />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-xs font-bold text-gray-500">具体时间</label>
-                              <input type="time" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" value={formData.auctionTime || ''} onChange={e => setFormData({...formData, auctionTime: e.target.value})} />
-                            </div>
-                        </div>
-                    </div>
-                  </div>
-
-                  {/* 底部全宽列：状态、图片与描述 */}
-                  <div className="space-y-4 pt-4 border-t">
-                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-500">当前状态</label>
-                        <select className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})}>
-                            <option value="PUBLISHED">立即上架 (Published)</option>
-                            <option value="DRAFT">存为草稿 (Draft)</option>
-                        </select>
-                     </div>
-                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-500">主图链接 (URL) *</label>
-                        <div className="flex gap-4">
-                           <input className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" placeholder="https://..." value={formData.thumbnail || ''} onChange={e => setFormData({...formData, thumbnail: e.target.value})} />
-                           <div className="w-16 h-12 bg-gray-100 rounded border flex items-center justify-center overflow-hidden">
-                               {formData.thumbnail ? <img src={formData.thumbnail} className="w-full h-full object-cover" /> : <ImageIcon size={20} className="text-gray-300" />}
-                           </div>
-                        </div>
-                     </div>
-                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-500">作品详细介绍</label>
-                        <textarea className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none h-32" value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="请输入作品背后的故事、来源、展览记录等..." />
-                     </div>
-                  </div>
-
-                  <div className="pt-4 grid grid-cols-2 gap-4">
-                    <button onClick={() => { setIsAdding(false); setEditingId(null); setFormData({}); }} className="py-3 border rounded-xl hover:bg-gray-50 font-bold text-gray-600 transition">取消</button>
-                    <button onClick={handleSave} className="py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 flex items-center justify-center gap-2 shadow-lg shadow-blue-200 transition"><Save size={18} /> 保存数据</button>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-gray-50 border-2 border-dashed rounded-3xl p-8 text-center sticky top-24">
-                  <Plus size={32} className="text-gray-300 mx-auto mb-4" />
-                  <p className="text-sm text-gray-400">点击列表左侧的编辑按钮，或点击上方“发布新数据”</p>
+                  <button onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ status: 'PUBLISHED' }); }} className="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold flex items-center space-x-2 hover:bg-blue-700 text-sm whitespace-nowrap shadow-sm">
+                    <Plus size={16} /><span>新增</span>
+                  </button>
                 </div>
               )}
             </div>
+
+            <div className="bg-white rounded-2xl border overflow-hidden shadow-sm">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 border-b text-gray-500 uppercase tracking-wider">
+                  <tr><th className="px-6 py-4 font-bold">作品信息</th><th className="px-6 py-4 font-bold">成交价</th><th className="px-6 py-4 font-bold">状态</th><th className="px-6 py-4 text-right">操作</th></tr>
+                </thead>
+                <tbody className="divide-y">
+                  {filteredArtworks.map(art => (
+                    <tr key={art.id} className={`transition hover:bg-gray-50 ${editingId === art.id ? 'bg-blue-50/50' : ''}`}>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-12 h-12 rounded bg-gray-100 flex-shrink-0 overflow-hidden">
+                            <img src={art.thumbnail} className="w-full h-full object-cover" alt="thumbnail" />
+                          </div>
+                          <div>
+                            <div className="font-bold text-gray-900 line-clamp-1">{art.title}</div>
+                            <div className="text-gray-500 text-xs">{art.artist}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4"><div className="font-bold text-gray-700">¥{art.hammerPrice.toLocaleString()}</div></td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${art.status === 'PUBLISHED' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                          {art.status === 'PUBLISHED' ? '已发布' : '草稿'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end space-x-2">
+                          <button onClick={() => handleEdit(art)} className={`p-2 rounded-lg transition ${editingId === art.id ? 'bg-blue-600 text-white' : 'text-blue-600 hover:bg-blue-50'}`}>
+                            <Edit3 size={18}/>
+                          </button>
+                          <button onClick={() => handleDelete(art.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                            <Trash2 size={18}/>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </>
+          
+          {/* 右侧：编辑/新增表单 (占 1/3，固定位置) */}
+          <div className="lg:col-span-1">
+            {(isAdding || editingId) ? (
+              <div className="bg-white rounded-2xl border p-5 shadow-lg sticky top-24 space-y-5 max-h-[calc(100vh-8rem)] overflow-y-auto custom-scrollbar">
+                <div className="flex items-center justify-between border-b pb-3">
+                  <h3 className="text-lg font-bold text-gray-900">{isAdding ? '发布新艺术品' : '编辑作品信息'}</h3>
+                  <button onClick={() => { setIsAdding(false); setEditingId(null); setFormData({}); }} className="text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 p-1 transition">
+                    <X size={20} />
+                  </button>
+                </div>
+                
+                {/* 1. 主图上传 (放在最显眼的位置) */}
+                <div className="space-y-2">
+                   <label className="text-xs font-bold text-gray-500 flex items-center gap-1"><ImageIcon size={14}/> 作品主图 (封面) *</label>
+                   <div 
+                      className="border-2 border-dashed border-gray-300 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50/30 transition group"
+                      onClick={() => imageUploadRef.current?.click()}
+                   >
+                      {formData.thumbnail ? (
+                        <div className="relative w-full aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                           <img src={formData.thumbnail} className="w-full h-full object-contain" alt="preview" />
+                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <span className="text-white text-xs font-bold flex items-center gap-1"><Upload size={12}/> 更换图片</span>
+                           </div>
+                        </div>
+                      ) : (
+                        <div className="py-4">
+                           <Upload size={32} className="text-gray-300 mx-auto mb-2 group-hover:text-blue-500" />
+                           <span className="text-xs text-gray-500 group-hover:text-blue-600">点击上传图片 (Max 2MB)</span>
+                        </div>
+                      )}
+                      <input type="file" ref={imageUploadRef} onChange={(e) => handleImageUpload(e, false)} accept="image/*" className="hidden" />
+                   </div>
+                </div>
+
+                {/* 2. 核心信息 */}
+                <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500">作品名称 *</label>
+                      <input className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none text-sm font-bold" value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-gray-500">艺术家 *</label>
+                          <input className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none text-sm" value={formData.artist || ''} onChange={e => setFormData({...formData, artist: e.target.value})} />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-gray-500">年份</label>
+                          <input className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none text-sm" placeholder="如: 1998" value={formData.creationYear || ''} onChange={e => setFormData({...formData, creationYear: e.target.value})} />
+                        </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500">分类</label>
+                      <input className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none text-sm" placeholder="如: 中国书画" value={formData.category || ''} onChange={e => setFormData({...formData, category: e.target.value})} />
+                    </div>
+                </div>
+
+                {/* 3. 价格与详情 */}
+                <div className="space-y-3 pt-3 border-t">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500">成交价 (RMB) *</label>
+                      <input type="number" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none font-mono font-bold text-red-600" value={formData.hammerPrice || ''} onChange={e => setFormData({...formData, hammerPrice: Number(e.target.value)})} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-gray-500">估价 Min</label>
+                          <input type="number" className="w-full px-3 py-2 border rounded-lg text-sm" value={formData.estimatedPriceMin || ''} onChange={e => setFormData({...formData, estimatedPriceMin: Number(e.target.value)})} />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-gray-500">估价 Max</label>
+                          <input type="number" className="w-full px-3 py-2 border rounded-lg text-sm" value={formData.estimatedPriceMax || ''} onChange={e => setFormData({...formData, estimatedPriceMax: Number(e.target.value)})} />
+                        </div>
+                    </div>
+                    
+                    {/* 折叠/展开更多细节的区域 */}
+                    <details className="group">
+                        <summary className="text-xs font-bold text-blue-600 cursor-pointer list-none flex items-center gap-1 mt-2">
+                           <Plus size={12} className="group-open:rotate-45 transition-transform"/> 填写更多详细参数 (材质、尺寸、拍卖行等)
+                        </summary>
+                        <div className="space-y-3 mt-3 animate-in fade-in slide-in-from-top-1">
+                           <div className="grid grid-cols-2 gap-3">
+                              <input className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="材质 (如: 设色纸本)" value={formData.material || ''} onChange={e => setFormData({...formData, material: e.target.value})} />
+                              <input className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="尺寸 (如: 120x60cm)" value={formData.dimensions || ''} onChange={e => setFormData({...formData, dimensions: e.target.value})} />
+                           </div>
+                           <input className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="拍卖行名称" value={formData.auctionHouse || ''} onChange={e => setFormData({...formData, auctionHouse: e.target.value})} />
+                           <input className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="拍卖专场" value={formData.auctionSession || ''} onChange={e => setFormData({...formData, auctionSession: e.target.value})} />
+                           <div className="grid grid-cols-2 gap-3">
+                              <input type="date" className="w-full px-3 py-2 border rounded-lg text-sm" value={formData.auctionDate || ''} onChange={e => setFormData({...formData, auctionDate: e.target.value})} />
+                              <input type="time" className="w-full px-3 py-2 border rounded-lg text-sm" value={formData.auctionTime || ''} onChange={e => setFormData({...formData, auctionTime: e.target.value})} />
+                           </div>
+                           <textarea className="w-full px-3 py-2 border rounded-lg text-sm h-20" placeholder="作品介绍..." value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} />
+                        </div>
+                    </details>
+                </div>
+
+                {/* 4. 底部按钮 */}
+                <div className="pt-4 border-t flex flex-col gap-3">
+                   <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-gray-500">发布状态</label>
+                      <select className="px-2 py-1 border rounded text-sm bg-gray-50" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})}>
+                          <option value="PUBLISHED">立即上架</option>
+                          <option value="DRAFT">存为草稿</option>
+                      </select>
+                   </div>
+                   <button onClick={handleSave} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 flex items-center justify-center gap-2 shadow-lg shadow-blue-200 transition">
+                      <Save size={18} /> 保存并{isAdding ? '发布' : '更新'}
+                   </button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-50 border-2 border-dashed rounded-3xl p-8 text-center sticky top-24 h-[400px] flex flex-col items-center justify-center">
+                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-sm text-gray-300">
+                  <Edit3 size={32} />
+                </div>
+                <h4 className="font-bold text-gray-600 mb-2">准备就绪</h4>
+                <p className="text-sm text-gray-400 px-4">
+                  点击左侧列表中的 <span className="text-blue-600 font-bold"><Edit3 size={12} className="inline"/> 编辑</span> 按钮，<br/>
+                  或者点击顶部的 <span className="text-blue-600 font-bold">新增</span> 按钮开始操作。
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* --- Tab 2: 广告管理 --- */}
       {currentTab === 'ADS' && (
-        <div className="grid lg:grid-cols-2 gap-8">
-          <div className="space-y-6">
+        <div className="grid lg:grid-cols-3 gap-8 items-start">
+          <div className="lg:col-span-2 space-y-6">
             {ads.map(ad => (
               <div key={ad.id} className={`bg-white p-6 rounded-2xl border shadow-sm transition hover:shadow-md cursor-pointer ${editingAdId === ad.id ? 'ring-2 ring-blue-500' : ''}`} onClick={() => handleEditAd(ad)}>
                 <div className="flex justify-between items-start mb-4">
@@ -401,44 +473,55 @@ const AdminDashboard: React.FC<Props> = ({ artworks, allUsers, ads, onUpdate, on
             ))}
           </div>
 
-          <div>
+          <div className="lg:col-span-1">
             {editingAdId ? (
-              <div className="bg-white rounded-2xl border p-8 shadow-lg sticky top-24 animate-in slide-in-from-right">
-                <div className="flex items-center justify-between mb-6 border-b pb-4">
-                  <h3 className="text-xl font-bold text-gray-900">编辑广告位</h3>
-                  <span className="text-sm text-gray-500">{adFormData.name}</span>
+              <div className="bg-white rounded-2xl border p-6 shadow-lg sticky top-24 animate-in slide-in-from-right space-y-5">
+                <div className="flex items-center justify-between border-b pb-4">
+                  <h3 className="text-lg font-bold text-gray-900">编辑广告位</h3>
+                  <button onClick={() => { setEditingAdId(null); setAdFormData({}); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
                 </div>
 
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-700">广告标题 / 文案</label>
+                    <label className="text-xs font-bold text-gray-500">广告标题 / 文案</label>
                     <input 
-                      className="w-full px-4 py-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-100 transition"
+                      className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-100 text-sm"
                       value={adFormData.title || ''}
                       onChange={e => setAdFormData({...adFormData, title: e.target.value})}
                       placeholder="例如：2026 春季拍卖会"
                     />
                   </div>
 
+                  {/* 广告图片上传 */}
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                      <ImageIcon size={16} /> 广告图片链接 (Image URL)
-                    </label>
-                    <input 
-                      className="w-full px-4 py-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-100 transition"
-                      value={adFormData.imageUrl || ''}
-                      onChange={e => setAdFormData({...adFormData, imageUrl: e.target.value})}
-                      placeholder="输入图片地址，留空则使用系统默认样式"
-                    />
-                    <p className="text-xs text-gray-400">建议尺寸: 1200x400px 或同比例图片</p>
+                     <label className="text-xs font-bold text-gray-500 flex items-center gap-1"><ImageIcon size={14}/> 广告图片</label>
+                     <div 
+                        className="border-2 border-dashed border-gray-300 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50/30 transition group"
+                        onClick={() => adImageUploadRef.current?.click()}
+                     >
+                        {adFormData.imageUrl ? (
+                          <div className="relative w-full aspect-[3/1] bg-gray-100 rounded-lg overflow-hidden">
+                             <img src={adFormData.imageUrl} className="w-full h-full object-cover" alt="preview" />
+                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="text-white text-xs font-bold flex items-center gap-1"><Upload size={12}/> 更换</span>
+                             </div>
+                          </div>
+                        ) : (
+                          <div className="py-2">
+                             <Upload size={24} className="text-gray-300 mx-auto mb-1 group-hover:text-blue-500" />
+                             <span className="text-xs text-gray-500 group-hover:text-blue-600">点击上传广告图</span>
+                          </div>
+                        )}
+                        <input type="file" ref={adImageUploadRef} onChange={(e) => handleImageUpload(e, true)} accept="image/*" className="hidden" />
+                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                      <ExternalLink size={16} /> 跳转链接 (Target URL)
+                    <label className="text-xs font-bold text-gray-500 flex items-center gap-1">
+                      <ExternalLink size={14} /> 跳转链接
                     </label>
                     <input 
-                      className="w-full px-4 py-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-100 transition"
+                      className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-100 text-sm"
                       value={adFormData.linkUrl || ''}
                       onChange={e => setAdFormData({...adFormData, linkUrl: e.target.value})}
                       placeholder="https://..."
@@ -449,7 +532,7 @@ const AdminDashboard: React.FC<Props> = ({ artworks, allUsers, ads, onUpdate, on
                     <input 
                       type="checkbox" 
                       id="adActive"
-                      className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                       checked={adFormData.isActive}
                       onChange={e => setAdFormData({...adFormData, isActive: e.target.checked})}
                     />
@@ -457,28 +540,25 @@ const AdminDashboard: React.FC<Props> = ({ artworks, allUsers, ads, onUpdate, on
                   </div>
                 </div>
 
-                <div className="pt-8 grid grid-cols-2 gap-4">
+                <div className="pt-6 grid grid-cols-2 gap-3">
                   <button 
                     onClick={() => { setEditingAdId(null); setAdFormData({}); }}
-                    className="py-3 border rounded-xl hover:bg-gray-50 font-bold text-gray-600 transition"
+                    className="py-2 border rounded-xl hover:bg-gray-50 font-bold text-gray-600 transition text-sm"
                   >
                     取消
                   </button>
                   <button 
                     onClick={handleSaveAd}
-                    className="py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 flex items-center justify-center gap-2 shadow-lg shadow-blue-200 transition"
+                    className="py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 flex items-center justify-center gap-2 shadow-sm transition text-sm"
                   >
-                    <Save size={18} /> 保存更改
+                    <Save size={16} /> 保存
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="bg-gray-50 border-2 border-dashed rounded-3xl p-12 text-center sticky top-24">
-                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-blue-500">
-                  <Monitor size={32} />
-                </div>
-                <h4 className="font-bold text-gray-600 mb-2">选择左侧广告位进行编辑</h4>
-                <p className="text-sm text-gray-400">您可以修改广告的标题、图片和跳转链接，实时生效。</p>
+              <div className="bg-gray-50 border-2 border-dashed rounded-3xl p-8 text-center sticky top-24 h-[300px] flex flex-col items-center justify-center">
+                <Monitor size={32} className="text-gray-300 mb-2" />
+                <p className="text-sm text-gray-400">选择左侧广告位进行编辑</p>
               </div>
             )}
           </div>
