@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { User, UserRole } from '../types';
-import { Mail, Lock, ShieldCheck, ArrowRight, User as UserIcon, CheckCircle, RefreshCw, Loader2 } from 'lucide-react';
+import { Mail, Lock, ShieldCheck, ArrowRight, User as UserIcon, RefreshCw, Loader2 } from 'lucide-react';
 
 interface Props {
   onAuthSuccess: (user: User, isRegister: boolean) => void;
-  // 移除 users 和 onPasswordReset 参数，改为内部 API 调用
 }
 
 type AuthMode = 'LOGIN' | 'REGISTER' | 'FORGOT';
@@ -41,6 +40,16 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: formData.email, newPassword: formData.password })
         });
+        
+        // --- 防御性检查开始 ---
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+           const text = await res.text();
+           console.error("API 错误响应:", text);
+           throw new Error(`服务器连接异常: 返回了非 JSON 数据 (状态码 ${res.status})。请按 F12 查看控制台详情。`);
+        }
+        // --- 防御性检查结束 ---
+
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '重置失败');
 
@@ -56,6 +65,20 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: formData.email, password: formData.password })
         });
+
+        // --- 防御性检查开始 ---
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+           const text = await res.text();
+           console.error("API 错误响应:", text);
+           // 这里我们能抓到到底是 404 (接口没找到) 还是 500 (数据库挂了)
+           if (res.status === 404) {
+             throw new Error('API 接口未找到 (404)。可能是后端服务未启动，Zeabur 可能只部署了前端静态页面。');
+           }
+           throw new Error(`登录失败: 服务器返回异常 (状态码 ${res.status})`);
+        }
+        // --- 防御性检查结束 ---
+
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '登录失败');
 
@@ -82,6 +105,16 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newUser)
         });
+
+        // --- 防御性检查开始 ---
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+           const text = await res.text();
+           console.error("API 错误响应:", text);
+           throw new Error(`注册失败: 服务器返回异常 (状态码 ${res.status})`);
+        }
+        // --- 防御性检查结束 ---
+
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '注册失败');
 
@@ -91,6 +124,7 @@ const Auth: React.FC<Props> = ({ onAuthSuccess }) => {
       }
     } catch (err: any) {
       setError(err.message);
+      console.error("Auth Error:", err);
     } finally {
       setIsLoading(false);
     }
