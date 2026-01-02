@@ -187,6 +187,8 @@ const Navbar: React.FC<Props> = ({ user, onLogout }) => {
             {/* 移动端：市场指数 (此处无需修改，之前已是 /index) */}
             <Link to="/index" onClick={() => setIsMenuOpen(false)} className="py-2 border-b border-gray-100">市场指数</Link>
             
+            <Link to="/favorites" onClick={() => setIsMenuOpen(false)} className="py-2 border-b border-gray-100">我的收藏</Link>
+            
             <button onClick={() => { setIsMenuOpen(false); setShowContactModal(true); }} className="py-2 border-b border-gray-100 text-left flex items-center justify-between">
                 <span>联系我们</span>
                 <MessageCircle size={18} className="text-gray-400"/>
