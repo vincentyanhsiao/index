@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Artwork, User, Advertisement, UserRole } from '../types';
+import { Artwork, User, Advertisement } from '../types';
 import ArtworkCard from '../components/ArtworkCard';
-import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, ArrowRight, Heart, ExternalLink, Zap, Lock } from 'lucide-react';
+import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, ArrowRight, Heart, ExternalLink, Zap, Lock, X, ScanLine } from 'lucide-react';
 
 interface Props {
   artworks: Artwork[];
@@ -17,13 +17,14 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
   const artwork = artworks.find(a => a.id === id);
 
   const [activeImageIdx, setActiveImageIdx] = useState(0);
-  const [showModal, setShowModal] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false); // 图片大图 Modal
+  const [showVipModal, setShowVipModal] = useState(false);     // ⚠️ 新增：VIP 引导 Modal
   const [isCopied, setIsCopied] = useState(false);
 
   const isFavorite = user?.favorites.includes(artwork?.id || '');
-  
-  // ⚠️ 核心判断：是管理员 或者是 VIP 才能看价格
-  const canViewPrice = user?.role === UserRole.ADMIN || user?.isVip;
+
+  // ⚠️ 权限判断
+  const canViewPrice = user?.role === 'ADMIN' || user?.isVip;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -72,23 +73,16 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
       text: `${artwork.artist} | ${artwork.title} | 艺术品交易数据查询`,
       url: window.location.href
     };
-
     if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-        return;
-      } catch (err) {
-        console.log('用户取消分享或分享失败');
-      }
+      try { await navigator.share(shareData); return; } catch (err) { console.log('取消分享'); }
     }
-
     const fullShareText = `${shareData.text} ${shareData.url}`;
     try {
       await navigator.clipboard.writeText(fullShareText);
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     } catch (err) {
-        alert('请手动复制浏览器地址');
+      alert('请手动复制浏览器地址');
     }
   };
 
@@ -100,14 +94,14 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
     if (onToggleFavorite) onToggleFavorite(artwork.id);
   };
   
+  // ⚠️ 点击 VIP 锁形图标时触发
   const handleVipClick = () => {
-      alert('如需查看成交价，请联系管理员开通 VIP 会员。');
+      setShowVipModal(true);
   };
 
   const renderDetailAd = () => {
     const ad = ads.find(a => a.slotId === 'detail_footer');
     if (!ad || !ad.isActive) return null;
-
     if (ad.imageUrl) {
       return (
         <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer" className="block w-full h-32 md:h-40 rounded-2xl overflow-hidden relative group shadow-sm hover:shadow-lg transition-all mt-8 lg:mt-12">
@@ -116,7 +110,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
         </a>
       );
     }
-
     return (
       <div className="mt-8 lg:mt-12">
         <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer" className="block w-full h-32 md:h-40 rounded-2xl overflow-hidden relative group shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
@@ -143,10 +136,11 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
       <button onClick={() => navigate(-1)} className="flex items-center text-gray-500 hover:text-blue-600 mb-6 mt-4 transition"><ArrowLeft size={20} className="mr-2" /> 返回</button>
 
       <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
+        {/* 图片区域 */}
         <div className="space-y-4 select-none">
           <div className="relative group aspect-square bg-gray-50 rounded-3xl overflow-hidden shadow-sm border border-gray-100">
-            <img src={artwork.images[activeImageIdx]} alt={artwork.title} className="w-full h-full object-contain cursor-zoom-in transition-transform duration-500" onClick={() => setShowModal(true)} />
-            <button onClick={(e) => { e.stopPropagation(); setShowModal(true); }} className="absolute top-4 right-4 p-2.5 bg-black/5 backdrop-blur-sm rounded-full text-gray-600 hover:bg-black/10 transition"><Maximize2 size={20} /></button>
+            <img src={artwork.images[activeImageIdx]} alt={artwork.title} className="w-full h-full object-contain cursor-zoom-in transition-transform duration-500" onClick={() => setShowImageModal(true)} />
+            <button onClick={(e) => { e.stopPropagation(); setShowImageModal(true); }} className="absolute top-4 right-4 p-2.5 bg-black/5 backdrop-blur-sm rounded-full text-gray-600 hover:bg-black/10 transition"><Maximize2 size={20} /></button>
             {artwork.images.length > 1 && (
               <>
                 <button onClick={prevImage} className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/80 backdrop-blur rounded-full shadow-lg text-gray-700 hover:bg-white transition"><ChevronLeft size={24} /></button>
@@ -161,6 +155,7 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
           </div>
         </div>
 
+        {/* 信息区域 */}
         <div className="flex flex-col">
           <div className="mb-6">
             <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-4 leading-tight">{artwork.title}</h1>
@@ -183,10 +178,10 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
                     <span className="block text-xs text-gray-400 mt-1">人民币 (RMB)</span>
                   </>
                 ) : (
-                   <div className="flex flex-col items-end cursor-pointer" onClick={handleVipClick}>
-                      <span className="text-2xl lg:text-3xl font-black text-gray-300 blur-sm select-none">¥ 12,000,000</span>
+                   <div className="flex flex-col items-end cursor-pointer group" onClick={handleVipClick}>
+                      <span className="text-2xl lg:text-3xl font-black text-gray-300 blur-sm select-none transition-opacity group-hover:opacity-70">¥ 12,000,000</span>
                       <div className="absolute inset-0 flex items-center justify-end">
-                          <span className="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full flex items-center shadow-sm border border-amber-200">
+                          <span className="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full flex items-center shadow-sm border border-amber-200 animate-pulse group-hover:animate-none group-hover:bg-amber-200 transition-colors">
                              <Lock size={12} className="mr-1" /> VIP 会员可见
                           </span>
                       </div>
@@ -195,7 +190,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
               </div>
             </div>
             
-            {/* 估价也对普通用户隐藏吗？通常估价是公开的，这里暂时公开，如果想隐藏也可以加判断 */}
             <div className="flex items-center justify-between py-2"><span className="text-gray-500 font-medium text-sm">估价:</span><span className="text-gray-900 font-bold">¥ {artwork.estimatedPriceMin.toLocaleString()} - {artwork.estimatedPriceMax.toLocaleString()}</span></div>
             <div className="flex items-center justify-between py-2"><span className="text-gray-500 font-medium text-sm">规格:</span><span className="text-gray-900">{artwork.dimensions}</span></div>
           </div>
@@ -253,9 +247,10 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
         </div>
       )}
 
-      {showModal && (
+      {/* --- 大图预览 Modal --- */}
+      {showImageModal && (
         <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <button onClick={() => setShowModal(false)} className="absolute top-6 right-6 p-2 bg-white/10 rounded-full text-white/70 hover:text-white hover:bg-white/20 transition"><ChevronLeft size={32} className="rotate-45" /></button>
+          <button onClick={() => setShowImageModal(false)} className="absolute top-6 right-6 p-2 bg-white/10 rounded-full text-white/70 hover:text-white hover:bg-white/20 transition"><ChevronLeft size={32} className="rotate-45" /></button>
           <img src={artwork.images[activeImageIdx]} className="max-w-full max-h-full object-contain select-none" alt="zoom" />
           {artwork.images.length > 1 && (
             <>
@@ -263,6 +258,57 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite, ads 
               <button onClick={(e) => { e.stopPropagation(); nextImage(); }} className="absolute right-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white transition"><ChevronRight size={48} /></button>
             </>
           )}
+        </div>
+      )}
+
+      {/* ⚠️ --- VIP 专属引导 Modal --- */}
+      {showVipModal && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full relative shadow-2xl animate-in slide-in-from-bottom-8 duration-300">
+            {/* 关闭按钮 */}
+            <button 
+                onClick={() => setShowVipModal(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1.5 bg-gray-50 rounded-full transition-colors"
+            >
+                <X size={20} />
+            </button>
+            
+            <div className="text-center space-y-6 pt-2">
+                {/* 顶部图标 */}
+                <div className="w-16 h-16 bg-gradient-to-br from-amber-100 to-orange-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto shadow-sm transform rotate-3">
+                   <Lock size={32} />
+                </div>
+                
+                {/* 营销文案 */}
+                <div>
+                    <h3 className="text-2xl font-black text-gray-900 mb-3">解锁真实成交价格</h3>
+                    <p className="text-gray-500 text-sm leading-relaxed px-2">
+                        升级为 <span className="text-amber-600 font-bold">FUHUNG VIP</span>，即可查看<br/>
+                        全球拍卖行的<span className="text-gray-900 font-bold">历史成交记录</span>与<span className="text-gray-900 font-bold">估值报告</span>
+                    </p>
+                </div>
+
+                {/* 扫码区域 */}
+                <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 inline-block group cursor-pointer" onClick={() => setShowVipModal(false)}>
+                    {/* ⚠️ 请确保您已将图片命名为 vip_qrcode.jpg 并放入 public 文件夹 */}
+                    <img 
+                        src="/vip_qrcode.jpg" 
+                        alt="Contact Admin" 
+                        className="w-40 h-40 object-contain mix-blend-darken filter group-hover:contrast-125 transition-all"
+                        onError={(e) => {e.currentTarget.src = 'https://via.placeholder.com/160x160?text=QR+Code'}}
+                    />
+                    <div className="flex items-center justify-center text-xs text-gray-500 mt-4 font-medium bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-100">
+                       <ScanLine size={14} className="mr-1.5 text-blue-500" />
+                       微信扫一扫 · 极速开通
+                    </div>
+                </div>
+
+                {/* 底部提示 */}
+                <p className="text-xs text-gray-300">
+                    联系管理员获取专属会员方案
+                </p>
+            </div>
+          </div>
         </div>
       )}
     </div>
