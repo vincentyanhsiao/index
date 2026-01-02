@@ -44,7 +44,7 @@ const ArtworkSchema = new mongoose.Schema({
 });
 const ArtworkModel = mongoose.model('Artwork', ArtworkSchema);
 
-// 用户 Schema (新增)
+// 用户 Schema (基础版，无VIP字段)
 const UserSchema = new mongoose.Schema({
   id: String,
   name: String,
@@ -59,7 +59,7 @@ const UserModel = mongoose.model('User', UserSchema);
 
 // --- API 接口 ---
 
-// 1. 艺术品接口
+// 1. 艺术品接口 (完全公开，无价格隐藏)
 app.get('/api/artworks', async (req, res) => {
   try {
     const artworks = await ArtworkModel.find();
@@ -89,7 +89,7 @@ app.delete('/api/artworks/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }) }
 });
 
-// 2. 用户/认证接口 (新增)
+// 2. 用户认证接口 (必须补全这些，否则前端登录会报错)
 
 // 注册
 app.post('/api/auth/register', async (req, res) => {
@@ -108,7 +108,8 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    // 管理员后门 (硬编码，防止数据库被清空无法登录)
+    
+    // 管理员后门 (保留这个，方便您管理)
     if (email === 'admin@fuhung.cn' && password === 'xiao1988HB') {
        return res.json({
          id: 'admin-01',
@@ -136,7 +137,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }) }
 });
 
-// 获取所有用户 (管理员用)
+// 获取用户列表 (管理员用)
 app.get('/api/users', async (req, res) => {
   try {
     const users = await UserModel.find();
