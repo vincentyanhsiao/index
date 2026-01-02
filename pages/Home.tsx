@@ -16,35 +16,30 @@ const Home: React.FC<Props> = ({ artworks }) => {
     navigate(`/search?q=${encodeURIComponent(keyword)}${isExact ? '&exact=true' : ''}`);
   };
 
-  // 1. 获取所有已上架的作品
   const publishedArtworks = useMemo(() => 
     artworks.filter(a => a.status === 'PUBLISHED'), 
   [artworks]);
 
-  // 2. 修改：顶部精选改为显示最新的 8 条数据 (原来是4条)
   const trendingArtworks = useMemo(() => {
     return [...publishedArtworks]
       .sort((a, b) => b.auctionDate.localeCompare(a.auctionDate))
       .slice(0, 8);
   }, [publishedArtworks]);
 
-  // 3. 核心升级：按分类自动生成推荐版块
   const categorySections = useMemo(() => {
-    // 3.1 提取所有不重复的分类名称
     const categories = Array.from(new Set(publishedArtworks.map(a => a.category))).filter(Boolean);
     
-    // 3.2 为每个分类构建数据
     return categories.map(category => {
       const categoryItems = publishedArtworks
         .filter(a => a.category === category)
-        .sort((a, b) => b.auctionDate.localeCompare(a.auctionDate)) // 按时间倒序
-        .slice(0, 8); // 每个分类只显示前8个
+        .sort((a, b) => b.auctionDate.localeCompare(a.auctionDate))
+        .slice(0, 8);
 
       return {
         title: category,
         items: categoryItems
       };
-    }).filter(section => section.items.length > 0); // 过滤掉没有数据的分类
+    }).filter(section => section.items.length > 0);
   }, [publishedArtworks]);
 
   return (
@@ -54,8 +49,9 @@ const Home: React.FC<Props> = ({ artworks }) => {
         <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 mb-6 leading-tight">
           挖掘艺术品的 <span className="text-blue-600">真实价值</span>
         </h1>
+        {/* 修改部分：更新文案 */}
         <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-10 px-4">
-          免费的艺术品交易数据查询平台，助您精准把握艺术市场脉搏。
+          专业的艺术品交易数据查询平台，注册会员解锁更多高级功能，助您精准把握市场脉搏。
         </p>
         <div className="px-4">
           <SearchSection onSearch={handleSearch} />
@@ -68,7 +64,8 @@ const Home: React.FC<Props> = ({ artworks }) => {
           { icon: <Search className="text-blue-600" />, title: '多维搜索', desc: '支持艺术家、作品名、拍卖行多维度模糊及精准查询' },
           { icon: <TrendingUp className="text-green-600" />, title: '行情趋势', desc: '实时更新拍卖成交价，掌握作品市场价格走势' },
           { icon: <ShieldCheck className="text-purple-600" />, title: '权威认证', desc: '数据来源于全球主流拍卖行，确保真实有效' },
-          { icon: <Zap className="text-orange-600" />, title: '完全免费', desc: '无需注册登录，即刻查询所有历史成交数据' },
+          // 修改部分：更新图标文案
+          { icon: <Zap className="text-orange-600" />, title: '会员服务', desc: '注册即享专属收藏夹、数据导出等高级权益' },
         ].map((feature, idx) => (
           <div key={idx} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition">
             <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center mb-4">
@@ -80,7 +77,7 @@ const Home: React.FC<Props> = ({ artworks }) => {
         ))}
       </section>
 
-      {/* 4. 精选近期成交 (显示8个) */}
+      {/* 精选近期成交 */}
       <section className="space-y-8">
         <div className="flex items-center justify-between px-4 border-l-4 border-blue-600 ml-4 lg:ml-0">
           <div>
@@ -100,7 +97,7 @@ const Home: React.FC<Props> = ({ artworks }) => {
         </div>
       </section>
 
-      {/* 5. 自动生成的分类推荐版块 */}
+      {/* 自动生成的分类推荐版块 */}
       {categorySections.map((section, idx) => (
         <section key={idx} className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700" style={{animationDelay: `${idx * 100}ms`}}>
           <div className="flex items-center justify-between px-4 border-l-4 border-gray-900 ml-4 lg:ml-0">
@@ -110,7 +107,6 @@ const Home: React.FC<Props> = ({ artworks }) => {
                 {section.title}专区
               </span>
             </div>
-            {/* 点击更多跳转到搜索页并自动搜索该分类 */}
             <button 
               onClick={() => navigate(`/search?q=${encodeURIComponent(section.title)}`)} 
               className="text-gray-500 hover:text-gray-900 font-medium flex items-center text-sm transition"
