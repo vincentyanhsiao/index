@@ -1,113 +1,212 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { User, UserRole } from '../types';
-import { LayoutDashboard, Menu, X, BarChart3, LogOut, User as UserIcon, Heart } from 'lucide-react';
+import { Menu, X, Search, User as UserIcon, LogOut, Shield, Crown, ScanLine, MessageCircle } from 'lucide-react';
+// ✅ 引入二维码图片 (确保 src/assets/vip_qrcode.jpg 存在)
+import vipQrCodeImg from '../assets/vip_qrcode.jpg';
 
 interface Props {
-  user: User | null;
+  user?: User | null;
   onLogout: () => void;
 }
 
 const Navbar: React.FC<Props> = ({ user, onLogout }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false); // ⚠️ 新增：控制联系弹窗
+
+  const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [location]);
 
   const handleLogout = () => {
     onLogout();
     navigate('/');
   };
 
-  return (
-    <nav className="bg-white border-b sticky top-0 z-50">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-xl">F</span>
-          </div>
-          <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 hidden sm:inline">
-            FUHUNG ART INDEX
-          </span>
-        </Link>
-
-        {/* Mobile menu button */}
-        <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden p-2 text-gray-600">
-          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+  // ⚠️ 联系我们弹窗组件
+  const ContactModal = (
+    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+      <div className="bg-white rounded-3xl p-8 max-w-sm w-full relative shadow-2xl animate-in slide-in-from-bottom-8 duration-300">
+        <button 
+            onClick={() => setShowContactModal(false)}
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1.5 bg-gray-50 rounded-full transition-colors"
+        >
+            <X size={20} />
         </button>
-
-        {/* Desktop nav */}
-        <div className="hidden md:flex items-center space-x-6">
-          <Link to="/" className="text-gray-600 hover:text-blue-600 font-medium">首页</Link>
-          <Link to="/search" className="text-gray-600 hover:text-blue-600 font-medium">数据查询</Link>
-          <Link to="/index" className="flex items-center space-x-1 text-gray-600 hover:text-blue-600 font-medium">
-            <BarChart3 size={18} />
-            <span>市场指数</span>
-          </Link>
-          
-          <div className="h-6 w-px bg-gray-200"></div>
-
-          {user ? (
-            // 已登录状态
-            <div className="flex items-center space-x-4">
-              <Link to="/favorites" className="flex items-center space-x-1 text-gray-600 hover:text-pink-600 transition" title="我的收藏">
-                <Heart size={20} />
-              </Link>
-              
-              <div className="flex items-center space-x-3 pl-2">
-                <div className="text-sm font-bold text-gray-700">{user.name}</div>
-                {user.role === UserRole.ADMIN && (
-                   <Link to="/admin" className="p-1.5 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition" title="管理后台">
-                     <LayoutDashboard size={18} />
-                   </Link>
-                )}
-                <button 
-                  onClick={handleLogout}
-                  className="p-1.5 text-gray-400 hover:text-red-500 transition"
-                  title="退出登录"
-                >
-                  <LogOut size={18} />
-                </button>
-              </div>
+        
+        <div className="text-center space-y-6 pt-2">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-sm transform -rotate-3">
+               <MessageCircle size={32} />
             </div>
-          ) : (
-            // 未登录状态
-            <Link to="/login" className="flex items-center space-x-2 bg-gray-900 text-white px-5 py-2 rounded-full font-bold hover:bg-black transition shadow-lg shadow-gray-200">
-              <UserIcon size={16} />
-              <span>登录 / 注册</span>
-            </Link>
-          )}
+            
+            <div>
+                <h3 className="text-2xl font-black text-gray-900 mb-3">联系官方客服</h3>
+                <p className="text-gray-500 text-sm leading-relaxed px-2">
+                    如有任何疑问、商务合作<br/>
+                    或需<span className="text-blue-600 font-bold">开通 VIP 会员服务</span><br/>
+                    请扫码添加客服微信
+                </p>
+            </div>
+
+            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 inline-block group cursor-pointer" onClick={() => setShowContactModal(false)}>
+                <img 
+                    src={vipQrCodeImg} 
+                    alt="Contact Admin" 
+                    className="w-40 h-40 object-contain mix-blend-darken filter group-hover:contrast-125 transition-all"
+                />
+                <div className="flex items-center justify-center text-xs text-gray-500 mt-4 font-medium bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-100">
+                   <ScanLine size={14} className="mr-1.5 text-blue-500" />
+                   微信扫一扫 · 在线咨询
+                </div>
+            </div>
+
+            <p className="text-xs text-gray-300">
+                工作时间：周一至周日 9:00 - 22:00
+            </p>
         </div>
       </div>
+    </div>
+  );
 
-      {/* Mobile nav */}
-      {isMenuOpen && (
-        <div className="md:hidden bg-white border-t py-4 px-4 space-y-4 shadow-xl animate-in slide-in-from-top">
-          <Link to="/" className="block text-gray-700 font-medium" onClick={() => setIsMenuOpen(false)}>首页</Link>
-          <Link to="/search" className="block text-gray-700 font-medium" onClick={() => setIsMenuOpen(false)}>数据查询</Link>
-          <Link to="/index" className="block text-gray-700 font-medium" onClick={() => setIsMenuOpen(false)}>市场指数</Link>
+  return (
+    <>
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/80 backdrop-blur-md shadow-sm py-3' : 'bg-transparent py-5'}`}>
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
           
-          <hr />
-          
-          {user ? (
-            <>
-              <Link to="/favorites" className="block text-pink-600 font-medium" onClick={() => setIsMenuOpen(false)}>我的收藏</Link>
-              {user.role === UserRole.ADMIN && (
-                 <Link to="/admin" className="block text-blue-600 font-medium" onClick={() => setIsMenuOpen(false)}>管理后台</Link>
-              )}
+          {/* Logo 区域 */}
+          <Link to="/" className="flex items-center space-x-2 group">
+            <div className="w-10 h-10 bg-black text-white rounded-xl flex items-center justify-center font-black text-xl shadow-lg group-hover:scale-105 transition-transform">
+              F
+            </div>
+            <div className={`flex flex-col ${isScrolled ? 'text-gray-900' : 'text-gray-900'}`}>
+              <span className="font-black tracking-tight leading-none text-lg">FUHUNG</span>
+              <span className="text-[10px] tracking-widest uppercase opacity-60 font-medium">Art Index</span>
+            </div>
+          </Link>
+
+          {/* 桌面端导航 */}
+          <div className="hidden md:flex items-center space-x-8">
+            <div className="flex items-center space-x-6 text-sm font-bold text-gray-600">
+              <Link to="/" className="hover:text-black transition">首页</Link>
+              
+              {/* ⚠️ 已移除“数据查询”链接 */}
+              
+              <Link to="/favorites" className="hover:text-black transition">我的收藏</Link>
+              
+              {/* ⚠️ 新增：联系我们按钮 */}
               <button 
-                onClick={() => { handleLogout(); setIsMenuOpen(false); }}
-                className="block text-red-500 font-medium w-full text-left"
+                onClick={() => setShowContactModal(true)} 
+                className="hover:text-blue-600 transition flex items-center gap-1"
               >
-                退出登录
+                联系我们
               </button>
-            </>
-          ) : (
-             <Link to="/login" className="block w-full text-center bg-gray-900 text-white py-3 rounded-xl font-bold" onClick={() => setIsMenuOpen(false)}>
-               登录 / 注册
-             </Link>
-          )}
+            </div>
+
+            <div className="h-4 w-px bg-gray-300/50"></div>
+
+            <div className="flex items-center space-x-4">
+              <Link to="/search" className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition">
+                <Search size={20} />
+              </Link>
+              
+              {user ? (
+                <div className="relative group">
+                  <button className="flex items-center space-x-2 pl-1 pr-2 py-1 rounded-full hover:bg-gray-100 transition">
+                    <div className="w-8 h-8 bg-gradient-to-br from-gray-700 to-black text-white rounded-full flex items-center justify-center font-bold text-xs shadow-md">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-sm font-bold text-gray-700 max-w-[100px] truncate">{user.name}</span>
+                  </button>
+                  
+                  {/* 下拉菜单 */}
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top-right scale-95 group-hover:scale-100">
+                    <div className="px-4 py-3 border-b border-gray-50 mb-1">
+                      <p className="text-xs text-gray-400">登录账号</p>
+                      <p className="text-sm font-bold text-gray-900 truncate">{user.email}</p>
+                    </div>
+                    {user.role === UserRole.ADMIN && (
+                      <Link to="/admin" className="flex items-center space-x-3 px-4 py-3 text-sm font-bold text-gray-700 hover:bg-gray-50 rounded-xl transition">
+                        <Shield size={16} className="text-blue-600" />
+                        <span>后台管理</span>
+                      </Link>
+                    )}
+                    {user.isVip ? (
+                       <div className="flex items-center space-x-3 px-4 py-3 text-sm font-bold text-amber-600 bg-amber-50 rounded-xl mb-1">
+                         <Crown size={16} className="fill-current" />
+                         <span>尊贵 VIP 会员</span>
+                       </div>
+                    ) : (
+                       <button onClick={() => setShowContactModal(true)} className="w-full flex items-center space-x-3 px-4 py-3 text-sm font-bold text-gray-700 hover:bg-gray-50 rounded-xl transition text-left">
+                         <Crown size={16} className="text-gray-400" />
+                         <span>开通 VIP</span>
+                       </button>
+                    )}
+                    <button onClick={handleLogout} className="w-full flex items-center space-x-3 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 rounded-xl transition">
+                      <LogOut size={16} />
+                      <span>退出登录</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <Link to="/login" className="px-5 py-2.5 bg-black text-white text-sm font-bold rounded-full hover:bg-gray-800 transition shadow-lg shadow-gray-200">
+                  登录 / 注册
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* 移动端菜单按钮 */}
+          <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden p-2 text-gray-700">
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
+      </nav>
+
+      {/* 移动端菜单全屏覆盖 */}
+      {isMenuOpen && (
+        <div className="fixed inset-0 z-40 bg-white pt-24 px-6 md:hidden animate-in slide-in-from-top-10 duration-200">
+          <div className="flex flex-col space-y-6 text-lg font-bold text-gray-800">
+            <Link to="/" onClick={() => setIsMenuOpen(false)} className="py-2 border-b border-gray-100">首页</Link>
+            <Link to="/favorites" onClick={() => setIsMenuOpen(false)} className="py-2 border-b border-gray-100">我的收藏</Link>
+            
+            {/* ⚠️ 移动端也改为联系弹窗 */}
+            <button onClick={() => { setIsMenuOpen(false); setShowContactModal(true); }} className="py-2 border-b border-gray-100 text-left flex items-center justify-between">
+                <span>联系我们</span>
+                <MessageCircle size={18} className="text-gray-400"/>
+            </button>
+
+            {user && user.role === UserRole.ADMIN && (
+              <Link to="/admin" onClick={() => setIsMenuOpen(false)} className="py-2 border-b border-gray-100 text-blue-600">后台管理</Link>
+            )}
+
+            {!user && (
+              <Link to="/login" onClick={() => setIsMenuOpen(false)} className="py-3 bg-black text-white text-center rounded-xl shadow-lg mt-4">
+                立即登录
+              </Link>
+            )}
+            
+            {user && (
+              <button onClick={handleLogout} className="py-3 text-red-500 text-center mt-4">退出登录</button>
+            )}
+          </div>
         </div>
       )}
-    </nav>
+
+      {/* 渲染弹窗 */}
+      {showContactModal && ContactModal}
+    </>
   );
 };
 
