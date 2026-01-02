@@ -1,16 +1,16 @@
 import React, { useState, useRef } from 'react';
 import { Artwork, User, Advertisement } from '../types';
-import { Plus, Search, Edit3, Trash2, Image as ImageIcon, Upload, Users, Monitor, ExternalLink, Save } from 'lucide-react';
+import { Plus, Search, Edit3, Trash2, Image as ImageIcon, Upload, Users, Monitor, ExternalLink, Save, ArrowLeft } from 'lucide-react';
 
 interface Props {
   artworks: Artwork[];
   allUsers: User[];
-  ads: Advertisement[]; // 新增
+  ads: Advertisement[];
   onUpdate: (art: Artwork) => void;
   onDelete: (id: string) => void;
   onAdd: (art: Artwork) => void;
   onBatchImport: (arts: Artwork[]) => void;
-  onUpdateAd: (ad: Advertisement) => void; // 新增
+  onUpdateAd: (ad: Advertisement) => void;
 }
 
 // 定义后台的标签页
@@ -48,27 +48,33 @@ const AdminDashboard: React.FC<Props> = ({ artworks, allUsers, ads, onUpdate, on
   };
 
   const handleSave = () => {
+    // 基础校验
     if (!formData.title || !formData.artist || !formData.hammerPrice || !formData.thumbnail) {
-      alert('作品名称、艺术家、价格、主图均不可为空');
+      alert('作品名称、艺术家、成交价、主图链接为必填项');
       return;
     }
 
     const safeData = {
       ...formData,
+      category: formData.category || '其他',
       auctionSession: formData.auctionSession || '',
       description: formData.description || '',
       material: formData.material || '',
       dimensions: formData.dimensions || '',
       creationYear: formData.creationYear || '',
       auctionTime: formData.auctionTime || '',
+      auctionHouse: formData.auctionHouse || '',
+      estimatedPriceMin: Number(formData.estimatedPriceMin) || 0,
+      estimatedPriceMax: Number(formData.estimatedPriceMax) || 0,
+      hammerPrice: Number(formData.hammerPrice) || 0,
       status: formData.status || 'PUBLISHED',
+      auctionDate: formData.auctionDate || new Date().toISOString().split('T')[0],
     };
 
     if (isAdding) {
       const exists = artworks.find(a => a.title === safeData.title && a.artist === safeData.artist);
       if (exists) {
-        alert('该作品已有发布记录，请勿重复发布');
-        return;
+        if (!window.confirm('检测到该艺术家已有同名作品，是否继续添加？')) return;
       }
 
       const newArt: Artwork = {
@@ -201,18 +207,22 @@ const AdminDashboard: React.FC<Props> = ({ artworks, allUsers, ads, onUpdate, on
       {/* --- Tab 1: 艺术品管理 --- */}
       {currentTab === 'ARTWORKS' && (
         <>
-          <div className="flex justify-end gap-3 mb-6">
-            <button onClick={() => fileInputRef.current?.click()} className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-bold flex items-center space-x-2 hover:bg-gray-50 transition">
-              <Upload size={18} /><span>批量导入</span>
-            </button>
-            <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
-            <button onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ status: 'PUBLISHED' }); }} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center space-x-2 hover:bg-blue-700 transition">
-              <Plus size={20} /><span>发布新数据</span>
-            </button>
-          </div>
+          {/* 只有在非编辑/非添加状态下才显示列表顶部的按钮 */}
+          {!isAdding && !editingId && (
+            <div className="flex justify-end gap-3 mb-6">
+              <button onClick={() => fileInputRef.current?.click()} className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-bold flex items-center space-x-2 hover:bg-gray-50 transition">
+                <Upload size={18} /><span>批量导入</span>
+              </button>
+              <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
+              <button onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ status: 'PUBLISHED' }); }} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center space-x-2 hover:bg-blue-700 transition">
+                <Plus size={20} /><span>发布新数据</span>
+              </button>
+            </div>
+          )}
 
           <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-4">
+            {/* 左侧：列表视图 (在编辑模式下依然显示，但在移动端可能需要调整，这里保持桌面端布局) */}
+            <div className={`lg:col-span-2 space-y-4 ${(isAdding || editingId) ? 'hidden lg:block opacity-50 pointer-events-none' : ''}`}>
               <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input type="text" className="w-full pl-10 pr-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-100" placeholder="搜索作品..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
@@ -236,28 +246,120 @@ const AdminDashboard: React.FC<Props> = ({ artworks, allUsers, ads, onUpdate, on
               </div>
             </div>
             
-            <div className="lg:col-span-1">
+            {/* 右侧：编辑/新增表单 (完整版) */}
+            <div className={isAdding || editingId ? "lg:col-span-3 lg:col-start-1" : "lg:col-span-1"}>
               {(isAdding || editingId) ? (
-                <div className="bg-white rounded-2xl border p-6 shadow-lg sticky top-24 space-y-4 animate-in slide-in-from-right">
-                  <h3 className="text-lg font-bold border-b pb-4">{isAdding ? '发布新艺术品' : '编辑艺术品数据'}</h3>
-                  <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 hide-scrollbar">
-                    {/* 简化表单显示，保留核心字段 */}
-                    <div><label className="text-xs font-bold text-gray-500">作品名称</label><input className="w-full px-3 py-2 border rounded-lg" value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} /></div>
-                    <div><label className="text-xs font-bold text-gray-500">艺术家</label><input className="w-full px-3 py-2 border rounded-lg" value={formData.artist || ''} onChange={e => setFormData({...formData, artist: e.target.value})} /></div>
-                    <div><label className="text-xs font-bold text-gray-500">成交价</label><input type="number" className="w-full px-3 py-2 border rounded-lg" value={formData.hammerPrice || ''} onChange={e => setFormData({...formData, hammerPrice: Number(e.target.value)})} /></div>
-                    <div><label className="text-xs font-bold text-gray-500">主图URL</label><input className="w-full px-3 py-2 border rounded-lg" value={formData.thumbnail || ''} onChange={e => setFormData({...formData, thumbnail: e.target.value})} /></div>
-                    {/* ...其他字段省略，保持代码简洁... */}
-                    <div className="text-xs text-gray-400">* 为保持界面简洁，完整字段请在实际操作中填写</div>
+                <div className="bg-white rounded-2xl border p-6 md:p-8 shadow-lg sticky top-24 space-y-6 animate-in slide-in-from-right">
+                  <div className="flex items-center justify-between border-b pb-4">
+                    <h3 className="text-xl font-bold">{isAdding ? '发布新艺术品' : '编辑艺术品数据'}</h3>
+                    <button onClick={() => { setIsAdding(false); setEditingId(null); setFormData({}); }} className="text-gray-400 hover:text-gray-600"><ArrowLeft size={24} /></button>
                   </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* 左侧列：基础信息 */}
+                    <div className="space-y-4">
+                        <h4 className="font-bold text-gray-900 text-sm bg-gray-50 p-2 rounded">基础信息</h4>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-gray-500">作品名称 *</label>
+                          <input className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-gray-500">艺术家 *</label>
+                              <input className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" value={formData.artist || ''} onChange={e => setFormData({...formData, artist: e.target.value})} />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-gray-500">创作年份</label>
+                              <input className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" placeholder="如: 1998" value={formData.creationYear || ''} onChange={e => setFormData({...formData, creationYear: e.target.value})} />
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-gray-500">分类 *</label>
+                          <input className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" placeholder="如: 中国书画" value={formData.category || ''} onChange={e => setFormData({...formData, category: e.target.value})} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-gray-500">材质</label>
+                              <input className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" placeholder="如: 设色纸本" value={formData.material || ''} onChange={e => setFormData({...formData, material: e.target.value})} />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-gray-500">尺寸</label>
+                              <input className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" placeholder="如: 120x60cm" value={formData.dimensions || ''} onChange={e => setFormData({...formData, dimensions: e.target.value})} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 右侧列：拍卖信息 */}
+                    <div className="space-y-4">
+                        <h4 className="font-bold text-gray-900 text-sm bg-gray-50 p-2 rounded">拍卖数据</h4>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-gray-500">成交价 (RMB) *</label>
+                          <input type="number" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none font-mono font-bold text-red-600" value={formData.hammerPrice || ''} onChange={e => setFormData({...formData, hammerPrice: Number(e.target.value)})} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-gray-500">估价 Min</label>
+                              <input type="number" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" value={formData.estimatedPriceMin || ''} onChange={e => setFormData({...formData, estimatedPriceMin: Number(e.target.value)})} />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-gray-500">估价 Max</label>
+                              <input type="number" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" value={formData.estimatedPriceMax || ''} onChange={e => setFormData({...formData, estimatedPriceMax: Number(e.target.value)})} />
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-gray-500">拍卖行</label>
+                          <input className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" value={formData.auctionHouse || ''} onChange={e => setFormData({...formData, auctionHouse: e.target.value})} />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-gray-500">拍卖专场</label>
+                          <input className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" value={formData.auctionSession || ''} onChange={e => setFormData({...formData, auctionSession: e.target.value})} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-gray-500">成交日期</label>
+                              <input type="date" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" value={formData.auctionDate || ''} onChange={e => setFormData({...formData, auctionDate: e.target.value})} />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-gray-500">具体时间</label>
+                              <input type="time" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" value={formData.auctionTime || ''} onChange={e => setFormData({...formData, auctionTime: e.target.value})} />
+                            </div>
+                        </div>
+                    </div>
+                  </div>
+
+                  {/* 底部全宽列：状态、图片与描述 */}
+                  <div className="space-y-4 pt-4 border-t">
+                     <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-500">当前状态</label>
+                        <select className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})}>
+                            <option value="PUBLISHED">立即上架 (Published)</option>
+                            <option value="DRAFT">存为草稿 (Draft)</option>
+                        </select>
+                     </div>
+                     <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-500">主图链接 (URL) *</label>
+                        <div className="flex gap-4">
+                           <input className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none" placeholder="https://..." value={formData.thumbnail || ''} onChange={e => setFormData({...formData, thumbnail: e.target.value})} />
+                           <div className="w-16 h-12 bg-gray-100 rounded border flex items-center justify-center overflow-hidden">
+                               {formData.thumbnail ? <img src={formData.thumbnail} className="w-full h-full object-cover" /> : <ImageIcon size={20} className="text-gray-300" />}
+                           </div>
+                        </div>
+                     </div>
+                     <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-500">作品详细介绍</label>
+                        <textarea className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-100 outline-none h-32" value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="请输入作品背后的故事、来源、展览记录等..." />
+                     </div>
+                  </div>
+
                   <div className="pt-4 grid grid-cols-2 gap-4">
-                    <button onClick={() => { setIsAdding(false); setEditingId(null); setFormData({}); }} className="py-2 border rounded-xl hover:bg-gray-50 font-medium">取消</button>
-                    <button onClick={handleSave} className="py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700">保存</button>
+                    <button onClick={() => { setIsAdding(false); setEditingId(null); setFormData({}); }} className="py-3 border rounded-xl hover:bg-gray-50 font-bold text-gray-600 transition">取消</button>
+                    <button onClick={handleSave} className="py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 flex items-center justify-center gap-2 shadow-lg shadow-blue-200 transition"><Save size={18} /> 保存数据</button>
                   </div>
                 </div>
               ) : (
                 <div className="bg-gray-50 border-2 border-dashed rounded-3xl p-8 text-center sticky top-24">
                   <Plus size={32} className="text-gray-300 mx-auto mb-4" />
-                  <p className="text-sm text-gray-400">点击列表编辑或新增数据</p>
+                  <p className="text-sm text-gray-400">点击列表左侧的编辑按钮，或点击上方“发布新数据”</p>
                 </div>
               )}
             </div>
@@ -265,7 +367,7 @@ const AdminDashboard: React.FC<Props> = ({ artworks, allUsers, ads, onUpdate, on
         </>
       )}
 
-      {/* --- Tab 2: 广告管理 (新增) --- */}
+      {/* --- Tab 2: 广告管理 --- */}
       {currentTab === 'ADS' && (
         <div className="grid lg:grid-cols-2 gap-8">
           <div className="space-y-6">
@@ -283,8 +385,6 @@ const AdminDashboard: React.FC<Props> = ({ artworks, allUsers, ads, onUpdate, on
                     {ad.isActive ? '启用中' : '已停用'}
                   </span>
                 </div>
-                
-                {/* 预览区域 */}
                 <div className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden relative group">
                   {ad.imageUrl ? (
                     <img src={ad.imageUrl} className="w-full h-full object-cover" alt="ad preview" />
@@ -293,7 +393,6 @@ const AdminDashboard: React.FC<Props> = ({ artworks, allUsers, ads, onUpdate, on
                       无图片，将显示默认渐变样式
                     </div>
                   )}
-                  {/* 标题预览 */}
                   <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2 truncate">
                     {ad.title}
                   </div>
@@ -302,7 +401,6 @@ const AdminDashboard: React.FC<Props> = ({ artworks, allUsers, ads, onUpdate, on
             ))}
           </div>
 
-          {/* 广告编辑表单 */}
           <div>
             {editingAdId ? (
               <div className="bg-white rounded-2xl border p-8 shadow-lg sticky top-24 animate-in slide-in-from-right">
