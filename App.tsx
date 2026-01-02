@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { User, UserRole, Artwork } from './types';
+import { User, UserRole, Artwork, Advertisement } from './types';
 import { INITIAL_ARTWORKS } from './data';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
@@ -15,8 +15,18 @@ import Terms from './pages/Terms';
 const STORAGE_KEYS = {
   USER: 'artsy_user',
   ALL_USERS: 'artsy_all_users',
-  ARTWORKS: 'artsy_artworks'
+  ARTWORKS: 'artsy_artworks',
+  ADS: 'artsy_ads' // 新增：广告存储key
 };
+
+// 默认广告位配置
+const INITIAL_ADS: Advertisement[] = [
+  { id: 'ad_1', slotId: 'home_trending', name: '首页-近期成交下方', title: '专业艺术品估值服务 · 专家在线', imageUrl: '', linkUrl: 'https://www.example.com', isActive: true },
+  { id: 'ad_2', slotId: 'home_category_1', name: '首页-分类插屏1', title: '2026 春季拍卖会 · 全球征集开启', imageUrl: '', linkUrl: 'https://www.example.com', isActive: true },
+  { id: 'ad_3', slotId: 'home_category_2', name: '首页-分类插屏2', title: 'FUHUNG VIP 会员 · 限时 0 元体验', imageUrl: '', linkUrl: 'https://www.example.com', isActive: true },
+  { id: 'ad_4', slotId: 'home_category_3', name: '首页-分类插屏3', title: '名家书画鉴赏与投资价值 · 大师讲座', imageUrl: '', linkUrl: 'https://www.example.com', isActive: true },
+  { id: 'ad_5', slotId: 'detail_footer', name: '详情页-底部横幅', title: '想了解此艺术家的更多市场数据？', imageUrl: '', linkUrl: 'https://www.example.com', isActive: true },
+];
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
@@ -43,6 +53,12 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : INITIAL_ARTWORKS;
   });
 
+  // 新增：广告状态管理
+  const [ads, setAds] = useState<Advertisement[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.ADS);
+    return saved ? JSON.parse(saved) : INITIAL_ADS;
+  });
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(currentUser));
   }, [currentUser]);
@@ -55,6 +71,10 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEYS.ARTWORKS, JSON.stringify(artworks));
   }, [artworks]);
 
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.ADS, JSON.stringify(ads));
+  }, [ads]);
+
   const handleAuthSuccess = (user: User, isRegister: boolean) => {
     setCurrentUser(user);
     if (isRegister) {
@@ -62,7 +82,6 @@ const App: React.FC = () => {
     }
   };
 
-  // 新增：处理密码重置
   const handlePasswordReset = (email: string, newPass: string) => {
     setAllUsers(prev => prev.map(u => 
       u.email === email ? { ...u, password: newPass } : u
@@ -97,16 +116,23 @@ const App: React.FC = () => {
     setArtworks(prev => [...newArtworks, ...prev]);
   };
 
+  // 新增：更新广告的方法
+  const updateAd = (updatedAd: Advertisement) => {
+    setAds(prev => prev.map(ad => ad.id === updatedAd.id ? updatedAd : ad));
+  };
+
   return (
     <HashRouter>
       <div className="min-h-screen flex flex-col">
         <Navbar user={currentUser} onLogout={logout} />
         <main className="flex-grow container mx-auto px-4 py-8">
           <Routes>
-            <Route path="/" element={<Home artworks={artworks} />} />
+            {/* 传递 ads */}
+            <Route path="/" element={<Home artworks={artworks} ads={ads} />} />
             <Route path="/search" element={<SearchResults artworks={artworks} />} />
             <Route path="/index" element={<MarketIndex artworks={artworks} />} />
             
+            {/* 传递 ads */}
             <Route 
               path="/artwork/:id" 
               element={
@@ -114,11 +140,11 @@ const App: React.FC = () => {
                   artworks={artworks} 
                   user={currentUser}
                   onToggleFavorite={toggleFavorite}
+                  ads={ads} 
                 />
               } 
             />
             
-            {/* 修改点：传递 handlePasswordReset 给 Auth */}
             <Route 
               path="/login" 
               element={
@@ -141,6 +167,7 @@ const App: React.FC = () => {
               } 
             />
             
+            {/* 传递 ads 和 updateAd */}
             <Route 
               path="/admin/*" 
               element={
@@ -148,10 +175,12 @@ const App: React.FC = () => {
                   ? <AdminDashboard 
                       artworks={artworks} 
                       allUsers={allUsers}
+                      ads={ads} // Pass ads
                       onUpdate={updateArtwork} 
                       onDelete={deleteArtwork} 
                       onAdd={addArtwork}
                       onBatchImport={handleBatchImport}
+                      onUpdateAd={updateAd} // Pass update handler
                     /> 
                   : <Navigate to="/login" />
               } 
