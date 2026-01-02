@@ -1,26 +1,26 @@
 import React, { useMemo, useState } from 'react';
-import { Artwork, IndexPoint } from '../types';
+import { Artwork, IndexPoint, User } from '../types';
 import { BarChart3, TrendingUp, TrendingDown, Info, Calendar, Download, Trophy, Medal, ChevronRight, Filter, Clock } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface Props {
   artworks: Artwork[];
+  user?: User | null; // 新增：接收用户信息以判断权限
 }
 
 type ViewType = 'trend' | 'ranking';
 
-const MarketIndex: React.FC<Props> = ({ artworks }) => {
+const MarketIndex: React.FC<Props> = ({ artworks, user }) => {
+  const navigate = useNavigate();
   const [activeView, setActiveView] = useState<ViewType>('trend');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedYear, setSelectedYear] = useState<string>('all');
 
-  // Filter Logic for both Trend and Ranking
+  // Filter Logic
   const categories = ['all', ...Array.from(new Set(artworks.map(a => a.category)))];
   const years = ['all', ...Array.from(new Set(artworks.map(a => a.auctionDate.substring(0, 4)))).sort().reverse()];
 
-  // --- 核心优化算法开始 ---
-
-  // 辅助函数：计算中位数 (新增)
+  // 辅助函数：计算中位数
   const calculateMedian = (values: number[]) => {
     if (values.length === 0) return 0;
     const sorted = [...values].sort((a, b) => a - b);
@@ -28,18 +28,16 @@ const MarketIndex: React.FC<Props> = ({ artworks }) => {
     return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
   };
 
-  // Index Calculation Logic (Optimized)
+  // Index Calculation Logic
   const indexData = useMemo(() => {
-    // 1. 筛选数据
     const filtered = artworks.filter(a => 
       (selectedCategory === 'all' || a.category === selectedCategory) &&
       (selectedYear === 'all' || a.auctionDate.startsWith(selectedYear))
     );
 
-    // 2. 按月分组
     const monthlyGroups: Record<string, Artwork[]> = {};
     filtered.forEach(art => {
-      const month = art.auctionDate.substring(0, 7); // YYYY-MM
+      const month = art.auctionDate.substring(0, 7);
       if (!monthlyGroups[month]) monthlyGroups[month] = [];
       monthlyGroups[month].push(art);
     });
@@ -47,11 +45,9 @@ const MarketIndex: React.FC<Props> = ({ artworks }) => {
     const months = Object.keys(monthlyGroups).sort();
     if (months.length === 0) return [];
 
-    // 3. 计算每个月的基础数据 (均价改用中位数)
     const monthlyStats = months.map(m => {
       const arts = monthlyGroups[m];
       const prices = arts.map(a => a.hammerPrice);
-      // 优化：使用中位数价格，抗干扰
       const medianPrice = calculateMedian(prices);
       return {
         date: m,
@@ -61,39 +57,26 @@ const MarketIndex: React.FC<Props> = ({ artworks }) => {
       };
     });
 
-    // 4. 设定基准 (Base)
-    // 优化：以筛选范围内的【第一个月】作为基准点 (Base = 1000)
     const baseStats = monthlyStats[0];
-    const basePrice = baseStats.price || 1; // 防止除以零
+    const basePrice = baseStats.price || 1;
     const baseVolume = baseStats.volume || 1;
 
-    // 5. 生成最终指数
     return monthlyStats.map(stat => {
-      // 价格指数：当前中位数 / 基准中位数
       const priceRatio = stat.price / basePrice;
-      
-      // 交易量指数：当前量 / 基准量
       const volumeRatio = stat.volume / baseVolume;
-      
-      // 综合指数算法：价格权重 70%，成交量权重 30% (调整了权重，更看重价格)
-      // 并标准化为 1000 点起步
       let indexValue = Math.round((priceRatio * 0.7 + volumeRatio * 0.3) * 1000);
-
-      // 异常处理：如果没有成交，设为0或保持上月（这里简单设为0）
       if (stat.volume === 0) indexValue = 0;
 
       return { 
         date: stat.date, 
         value: indexValue, 
         volume: stat.volume, 
-        avgPrice: stat.price // 这里存储的是中位数价格，用于显示
+        avgPrice: stat.price 
       } as IndexPoint;
     });
   }, [artworks, selectedCategory, selectedYear]);
 
-  // --- 核心优化算法结束 ---
-
-  // Ranking Logic (New)
+  // Ranking Logic
   const rankingList = useMemo(() => {
     return artworks
       .filter(a => 
@@ -101,20 +84,72 @@ const MarketIndex: React.FC<Props> = ({ artworks }) => {
         (selectedYear === 'all' || a.auctionDate.startsWith(selectedYear))
       )
       .sort((a, b) => b.hammerPrice - a.hammerPrice)
-      .slice(0, 50); // Show top 50
+      .slice(0, 50);
   }, [artworks, selectedCategory, selectedYear]);
 
   const latestIndex = indexData[indexData.length - 1]?.value || 0;
-  const prevIndex = indexData[indexData.length - 2]?.value || 1000; // 默认为基准分
+  const prevIndex = indexData[indexData.length - 2]?.value || 1000;
   const changePercent = ((latestIndex - prevIndex) / (prevIndex || 1) * 100).toFixed(2);
   const isUp = latestIndex >= prevIndex;
+
+  // --- 新增：导出报表功能 ---
+  const handleExportReport = () => {
+    // 1. 权限校验
+    if (!user) {
+      if (window.confirm('导出专业报表是会员专属权益，是否前往登录？')) {
+        navigate('/login');
+      }
+      return;
+    }
+
+    if (rankingList.length === 0) {
+      alert('当前筛选条件下没有数据可导出');
+      return;
+    }
+
+    // 2. 准备 CSV 数据
+    // 添加 UTF-8 BOM 防止 Excel 乱码
+    const headers = ['排名', '作品名称', '艺术家', '分类', '创作年份', '成交价(RMB)', '拍卖行', '拍卖场次', '成交日期'];
+    
+    const rows = rankingList.map((art, index) => [
+      index + 1,
+      `"${art.title.replace(/"/g, '""')}"`, // 处理包含逗号或引号的标题
+      art.artist,
+      art.category,
+      art.creationYear || '-',
+      art.hammerPrice,
+      art.auctionHouse,
+      art.auctionSession,
+      art.auctionDate
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    // 3. 触发下载
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    
+    // 生成文件名：FUHUNG_2026年度_油画_TOP50报表.csv
+    const catName = selectedCategory === 'all' ? '全部分类' : selectedCategory;
+    const yearName = selectedYear === 'all' ? '历史至今' : `${selectedYear}年度`;
+    link.href = url;
+    link.setAttribute('download', `FUHUNG_${yearName}_${catName}_TOP50报表.csv`);
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Simple SVG Chart Generator
   const Chart = () => {
     if (indexData.length < 2) return <div className="h-64 flex items-center justify-center text-gray-400 bg-gray-50 rounded-2xl">该筛选条件下数据不足，无法生成趋势图</div>;
     const maxVal = Math.max(...indexData.map(d => d.value)) * 1.2;
     const minVal = Math.min(...indexData.map(d => d.value)) * 0.8;
-    const range = maxVal - minVal || 1; // 防止 range 为 0
+    const range = maxVal - minVal || 1;
     const width = 800;
     const height = 300;
     const padding = 40;
@@ -139,7 +174,6 @@ const MarketIndex: React.FC<Props> = ({ artworks }) => {
             );
           })}
           {indexData.map((d, i) => {
-            // 简单的标签显示逻辑，避免重叠
             if (indexData.length > 10 && i % Math.ceil(indexData.length / 6) !== 0) return null;
             const x = padding + (i / (indexData.length - 1)) * (width - padding * 2);
             return <text key={i} x={x} y={height - 15} textAnchor="middle" className="text-[10px] fill-gray-400 font-medium">{d.date}</text>;
@@ -266,9 +300,16 @@ const MarketIndex: React.FC<Props> = ({ artworks }) => {
               </h3>
               <p className="text-sm text-gray-400 mt-1">按成交金额降序排列，展示市场的头部交易动态</p>
             </div>
-            <button className="flex items-center space-x-2 text-blue-600 font-bold hover:underline">
+            {/* 修改点：绑定点击事件，并根据登录状态改变样式 */}
+            <button 
+              onClick={handleExportReport}
+              className={`flex items-center space-x-2 font-bold hover:underline transition ${
+                user ? 'text-blue-600 cursor-pointer' : 'text-gray-400'
+              }`}
+              title={user ? "点击导出报表" : "会员专享功能"}
+            >
               <Download size={18} />
-              <span>导出报表</span>
+              <span>{user ? '导出报表' : '会员导出'}</span>
             </button>
           </div>
 
