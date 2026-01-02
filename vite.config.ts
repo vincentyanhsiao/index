@@ -5,10 +5,18 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
-    base: '/',
-        server: {
+      base: '/',
+      server: {
         port: 3000,
         host: '0.0.0.0',
+        // ⚠️ 修改点：增加代理，让前端请求转发到后端的 3001 端口
+        proxy: {
+          '/api': {
+            target: 'http://localhost:3001',
+            changeOrigin: true,
+            secure: false
+          }
+        }
       },
       plugins: [react()],
       define: {
