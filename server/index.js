@@ -5,24 +5,22 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// 解决 ES Module 中无法直接使用 __dirname 的问题
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-// 允许上传较大的图片数据 (50mb)
 app.use(express.json({ limit: '50mb' }));
 app.use(cors());
 
 // 1. 连接数据库
-// 会自动读取 Zeabur 设置的环境变量 MONGODB_URI，如果本地运行则连本地数据库
 const dbUrl = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/artworks_db';
-
 mongoose.connect(dbUrl)
   .then(() => console.log('数据库连接成功'))
   .catch(err => console.error('数据库连接失败', err));
 
-// 2. 定义数据结构 (Schema)
+// --- Schema 定义 ---
+
+// 艺术品 Schema
 const ArtworkSchema = new mongoose.Schema({
   id: String,
   title: String,
@@ -44,44 +42,115 @@ const ArtworkSchema = new mongoose.Schema({
   createdAt: String,
   status: String
 });
-
 const ArtworkModel = mongoose.model('Artwork', ArtworkSchema);
 
-// 3. API 接口 (增删改查)
+// 用户 Schema (新增)
+const UserSchema = new mongoose.Schema({
+  id: String,
+  name: String,
+  email: { type: String, unique: true },
+  password: String, // 注意：生产环境建议加密存储
+  role: String,
+  favorites: [String],
+  isMarketingAuthorized: Boolean,
+  createdAt: { type: Date, default: Date.now }
+});
+const UserModel = mongoose.model('User', UserSchema);
+
+// --- API 接口 ---
+
+// 1. 艺术品接口
 app.get('/api/artworks', async (req, res) => {
-  const artworks = await ArtworkModel.find();
-  res.json(artworks);
+  try {
+    const artworks = await ArtworkModel.find();
+    res.json(artworks);
+  } catch (e) { res.status(500).json({ error: e.message }) }
 });
 
 app.post('/api/artworks', async (req, res) => {
-  const newArt = new ArtworkModel(req.body);
-  await newArt.save();
-  res.json(newArt);
+  try {
+    const newArt = new ArtworkModel(req.body);
+    await newArt.save();
+    res.json(newArt);
+  } catch (e) { res.status(500).json({ error: e.message }) }
 });
 
 app.put('/api/artworks/:id', async (req, res) => {
-  const updated = await ArtworkModel.findOneAndUpdate({ id: req.params.id }, req.body, { new: true });
-  res.json(updated);
+  try {
+    const updated = await ArtworkModel.findOneAndUpdate({ id: req.params.id }, req.body, { new: true });
+    res.json(updated);
+  } catch (e) { res.status(500).json({ error: e.message }) }
 });
 
 app.delete('/api/artworks/:id', async (req, res) => {
-  await ArtworkModel.findOneAndDelete({ id: req.params.id });
-  res.json({ success: true });
+  try {
+    await ArtworkModel.findOneAndDelete({ id: req.params.id });
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }) }
 });
 
-// 4. 关键：托管前端网页
-// 当我们运行 npm run build 后，生成的网页会在 dist 文件夹里
-// 这里告诉服务器去哪里找这些网页文件
-app.use(express.static(path.join(__dirname, '../dist')));
+// 2. 用户/认证接口 (新增)
 
-// 5. 处理前端路由
-// 任何后端不认识的请求，都返回 index.html，交给前端 React 去处理路由跳转
+// 注册
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const existing = await UserModel.findOne({ email });
+    if (existing) return res.status(400).json({ error: '该邮箱已被注册' });
+    
+    const newUser = new UserModel(req.body);
+    await newUser.save();
+    res.json(newUser);
+  } catch (e) { res.status(500).json({ error: e.message }) }
+});
+
+// 登录
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    // 管理员后门 (硬编码，防止数据库被清空无法登录)
+    if (email === 'admin@fuhung.cn' && password === 'xiao1988HB') {
+       return res.json({
+         id: 'admin-01',
+         name: '超级管理员',
+         email: 'admin@fuhung.cn',
+         role: 'ADMIN',
+         favorites: [],
+         isMarketingAuthorized: false
+       });
+    }
+
+    const user = await UserModel.findOne({ email, password });
+    if (!user) return res.status(401).json({ error: '账号或密码错误' });
+    res.json(user);
+  } catch (e) { res.status(500).json({ error: e.message }) }
+});
+
+// 重置密码
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+    const user = await UserModel.findOneAndUpdate({ email }, { password: newPassword }, { new: true });
+    if (!user) return res.status(404).json({ error: '邮箱未注册' });
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }) }
+});
+
+// 获取所有用户 (管理员用)
+app.get('/api/users', async (req, res) => {
+  try {
+    const users = await UserModel.find();
+    res.json(users);
+  } catch (e) { res.status(500).json({ error: e.message }) }
+});
+
+// 托管前端
+app.use(express.static(path.join(__dirname, '../dist')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist', 'index.html'));
 });
 
-// 6. 启动服务器
 const PORT = process.env.PORT || 80;
 app.listen(PORT, () => {
-  console.log(`网站已启动：http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
