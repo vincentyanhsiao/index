@@ -1,19 +1,24 @@
-import React, { useState } from 'react';
-import { Artwork } from '../types';
-import { Plus, Search, Edit3, Trash2, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Artwork, User } from '../types';
+import { Plus, Search, Edit3, Trash2, Image as ImageIcon, Upload, Download, Users } from 'lucide-react';
 
 interface Props {
   artworks: Artwork[];
+  allUsers: User[]; // 新增：接收用户列表
   onUpdate: (art: Artwork) => void;
   onDelete: (id: string) => void;
   onAdd: (art: Artwork) => void;
+  onBatchImport: (arts: Artwork[]) => void; // 新增：批量导入回调
 }
 
-const AdminDashboard: React.FC<Props> = ({ artworks, onUpdate, onDelete, onAdd }) => {
+const AdminDashboard: React.FC<Props> = ({ artworks, allUsers, onUpdate, onDelete, onAdd, onBatchImport }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [formData, setFormData] = useState<Partial<Artwork>>({});
+  
+  // 文件上传 input 的引用
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredArtworks = artworks.filter(a => 
     a.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -44,7 +49,7 @@ const AdminDashboard: React.FC<Props> = ({ artworks, onUpdate, onDelete, onAdd }
       description: formData.description || '',
       material: formData.material || '',
       dimensions: formData.dimensions || '',
-      creationYear: formData.creationYear || '', // 新增：保存创作年份
+      creationYear: formData.creationYear || '',
       auctionTime: formData.auctionTime || '',
       status: formData.status || 'PUBLISHED',
     };
@@ -71,20 +76,134 @@ const AdminDashboard: React.FC<Props> = ({ artworks, onUpdate, onDelete, onAdd }
     setFormData({});
   };
 
+  // --- 新功能 1: 导出会员数据 ---
+  const handleExportUsers = () => {
+    if (!allUsers || allUsers.length === 0) {
+      alert('暂无会员数据可导出');
+      return;
+    }
+
+    // 定义 CSV 表头
+    const headers = ['用户ID', '姓名', '电子邮箱', '角色', '注册时间'];
+    
+    // 转换数据行
+    const rows = allUsers.map(u => [
+      u.id,
+      u.name,
+      u.email,
+      u.role === 'ADMIN' ? '管理员' : '普通会员',
+      new Date().toLocaleDateString() // 模拟注册时间，实际项目中应在User类型中增加createdAt字段
+    ]);
+
+    // 拼接 CSV 内容 (处理中文乱码需要 BOM)
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    // 创建 Blob 并下载
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `FUHUNG_会员名册_${new Date().toLocaleDateString()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // --- 新功能 2: 批量导入艺术品 ---
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target?.result as string);
+        if (Array.isArray(json)) {
+          // 简单的校验与转换
+          const validArtworks: Artwork[] = json.map((item: any) => ({
+            id: item.id || Math.random().toString(36).substr(2, 9),
+            title: item.title || '未命名作品',
+            artist: item.artist || '佚名',
+            category: item.category || '其他',
+            material: item.material || '',
+            dimensions: item.dimensions || '',
+            creationYear: item.creationYear || '',
+            hammerPrice: Number(item.hammerPrice) || 0,
+            estimatedPriceMin: Number(item.estimatedPriceMin) || 0,
+            estimatedPriceMax: Number(item.estimatedPriceMax) || 0,
+            auctionHouse: item.auctionHouse || '',
+            auctionDate: item.auctionDate || new Date().toISOString().split('T')[0],
+            auctionTime: item.auctionTime || '',
+            auctionSession: item.auctionSession || '',
+            description: item.description || '',
+            thumbnail: item.thumbnail || 'https://via.placeholder.com/400',
+            images: item.images || (item.thumbnail ? [item.thumbnail] : []),
+            status: 'PUBLISHED', // 默认直接发布
+            createdAt: new Date().toISOString()
+          }));
+
+          onBatchImport(validArtworks);
+          alert(`成功导入 ${validArtworks.length} 条艺术品数据！`);
+        } else {
+          alert('导入失败：文件格式必须是 JSON 数组');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('导入失败：JSON 文件解析错误');
+      }
+      // 清空 input，允许重复上传同一文件
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    reader.readAsText(file);
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4">
+    <div className="max-w-7xl mx-auto px-4 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">数据管理后台</h1>
           <p className="text-gray-500">当前共有 {artworks.length} 件艺术品数据</p>
         </div>
-        <button 
-          onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ status: 'PUBLISHED' }); }}
-          className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center space-x-2 hover:bg-blue-700 transition"
-        >
-          <Plus size={20} />
-          <span>发布新数据</span>
-        </button>
+        
+        <div className="flex flex-wrap gap-3">
+          {/* 会员导出按钮 */}
+          <button 
+            onClick={handleExportUsers}
+            className="bg-green-600 text-white px-4 py-2.5 rounded-xl font-bold flex items-center space-x-2 hover:bg-green-700 transition shadow-sm"
+          >
+            <Users size={18} />
+            <span>导出会员 ({allUsers.length})</span>
+          </button>
+
+          {/* 批量导入按钮 */}
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-bold flex items-center space-x-2 hover:bg-gray-50 transition shadow-sm"
+          >
+            <Upload size={18} />
+            <span>批量导入</span>
+          </button>
+          {/* 隐藏的文件输入框 */}
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            accept=".json" 
+            className="hidden" 
+          />
+
+          {/* 单个发布按钮 */}
+          <button 
+            onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ status: 'PUBLISHED' }); }}
+            className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center space-x-2 hover:bg-blue-700 transition shadow-lg shadow-blue-200"
+          >
+            <Plus size={20} />
+            <span>发布新数据</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
@@ -171,7 +290,6 @@ const AdminDashboard: React.FC<Props> = ({ artworks, onUpdate, onDelete, onAdd }
                       onChange={e => setFormData({...formData, artist: e.target.value})}
                     />
                   </div>
-                  {/* 新增：创作年份录入框 */}
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-gray-500">创作年份</label>
                     <input 
