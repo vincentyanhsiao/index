@@ -2,7 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Artwork, User } from '../types';
 import ArtworkCard from '../components/ArtworkCard';
-import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, ArrowRight, Heart } from 'lucide-react';
+// 修改点 1：引入 ExternalLink 和 Zap 图标
+import { ArrowLeft, Share2, MapPin, Calendar, Maximize2, ChevronLeft, ChevronRight, Check, ArrowRight, Heart, ExternalLink, Zap } from 'lucide-react';
 
 interface Props {
   artworks: Artwork[];
@@ -72,7 +73,6 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite }) =>
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     } catch (err) {
-      // 降级方案
       try {
         const textArea = document.createElement("textarea");
         textArea.value = fullShareText;
@@ -181,9 +181,42 @@ const ArtworkDetail: React.FC<Props> = ({ artworks, user, onToggleFavorite }) =>
         </div>
       </div>
 
+      {/* 作品介绍 */}
       <div className="mt-8 lg:mt-16 bg-white rounded-3xl p-6 lg:p-12 shadow-sm border border-gray-100">
         <h3 className="text-xl lg:text-2xl font-bold mb-6 pb-4 border-b">作品介绍</h3>
         <div className="prose prose-blue max-w-none text-gray-600 leading-loose whitespace-pre-wrap font-normal">{artwork.description || '暂无详细介绍'}</div>
+      </div>
+
+      {/* 修改点 2：新增详情页广告位 */}
+      <div className="mt-8 lg:mt-12">
+        <a 
+          href="https://www.example.com" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="block w-full h-32 md:h-40 rounded-2xl overflow-hidden relative group shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+        >
+          {/* 广告背景：深色渐变 */}
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-800 to-indigo-900 transition-transform duration-700 group-hover:scale-105"></div>
+          <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+          
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4 z-10">
+            <div className="flex items-center space-x-2 mb-1">
+              <Zap size={18} className="text-yellow-400 fill-current animate-pulse"/>
+              <span className="text-xs md:text-sm font-medium tracking-widest uppercase bg-white/10 px-2 py-0.5 rounded border border-white/20">Premium</span>
+            </div>
+            <h3 className="text-lg md:text-2xl font-bold tracking-wide drop-shadow-sm text-center">
+              想了解此艺术家的更多市场数据？
+            </h3>
+            <div className="mt-3 flex items-center space-x-1 text-xs md:text-sm font-bold text-indigo-100 hover:text-white transition-colors">
+              <span>升级专业版会员，查看完整报告</span>
+              <ExternalLink size={14} />
+            </div>
+          </div>
+          
+          <div className="absolute top-0 right-0 bg-black/40 text-white text-[10px] px-2 py-1 rounded-bl-lg backdrop-blur-sm z-20">
+            广告
+          </div>
+        </a>
       </div>
 
       {relatedArtworks.length > 0 && (
