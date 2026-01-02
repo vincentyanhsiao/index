@@ -14,7 +14,7 @@ import Terms from './pages/Terms';
 
 const STORAGE_KEYS = {
   USER: 'artsy_user',
-  ALL_USERS: 'artsy_all_users', // 存储所有用户列表
+  ALL_USERS: 'artsy_all_users',
   ARTWORKS: 'artsy_artworks'
 };
 
@@ -24,14 +24,13 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : null;
   });
 
-  // 管理所有注册用户
   const [allUsers, setAllUsers] = useState<User[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.ALL_USERS);
-    // 默认包含一个管理员账号，避免空列表
     const defaultAdmin: User = {
       id: 'admin-01',
       name: '管理员',
       email: 'admin@fuhung.cn',
+      password: 'xiao1988HB', // 补充管理员密码记录
       role: UserRole.ADMIN,
       favorites: [],
       isMarketingAuthorized: false
@@ -48,7 +47,6 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(currentUser));
   }, [currentUser]);
 
-  // 持久化所有用户数据
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.ALL_USERS, JSON.stringify(allUsers));
   }, [allUsers]);
@@ -57,11 +55,9 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEYS.ARTWORKS, JSON.stringify(artworks));
   }, [artworks]);
 
-  // 修改登录/注册逻辑
   const handleAuthSuccess = (user: User, isRegister: boolean) => {
     setCurrentUser(user);
     if (isRegister) {
-      // 如果是新注册，添加到用户列表
       setAllUsers(prev => [...prev, user]);
     }
   };
@@ -90,7 +86,6 @@ const App: React.FC = () => {
     setArtworks(prev => [artwork, ...prev]);
   };
 
-  // 批量导入艺术品
   const handleBatchImport = (newArtworks: Artwork[]) => {
     setArtworks(prev => [...newArtworks, ...prev]);
   };
@@ -103,8 +98,6 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<Home artworks={artworks} />} />
             <Route path="/search" element={<SearchResults artworks={artworks} />} />
-            
-            {/* 修正点：这里的 MarketIndex 不再传递 user 参数 */}
             <Route path="/index" element={<MarketIndex artworks={artworks} />} />
             
             <Route 
@@ -118,7 +111,8 @@ const App: React.FC = () => {
               } 
             />
             
-            <Route path="/login" element={<Auth onAuthSuccess={handleAuthSuccess} />} />
+            {/* 修改点：将 allUsers 传递给 Auth 组件，用于登录校验 */}
+            <Route path="/login" element={<Auth onAuthSuccess={handleAuthSuccess} users={allUsers} />} />
             <Route path="/terms" element={<Terms />} />
             
             <Route 
@@ -136,11 +130,11 @@ const App: React.FC = () => {
                 currentUser?.role === UserRole.ADMIN 
                   ? <AdminDashboard 
                       artworks={artworks} 
-                      allUsers={allUsers} // 传递所有用户数据
+                      allUsers={allUsers}
                       onUpdate={updateArtwork} 
                       onDelete={deleteArtwork} 
                       onAdd={addArtwork}
-                      onBatchImport={handleBatchImport} // 传递批量导入函数
+                      onBatchImport={handleBatchImport}
                     /> 
                   : <Navigate to="/login" />
               } 
