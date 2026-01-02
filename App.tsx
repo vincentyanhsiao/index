@@ -10,10 +10,11 @@ import Auth from './pages/Auth';
 import AdminDashboard from './pages/AdminDashboard';
 import MarketIndex from './pages/MarketIndex';
 import MyFavorites from './pages/MyFavorites';
-import Terms from './pages/Terms'; // 1. 引入新页面
+import Terms from './pages/Terms';
 
 const STORAGE_KEYS = {
   USER: 'artsy_user',
+  ALL_USERS: 'artsy_all_users', // 新增：存储所有用户列表
   ARTWORKS: 'artsy_artworks'
 };
 
@@ -21,6 +22,21 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.USER);
     return saved ? JSON.parse(saved) : null;
+  });
+
+  // 新增：管理所有注册用户
+  const [allUsers, setAllUsers] = useState<User[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.ALL_USERS);
+    // 默认包含一个管理员账号，避免空列表
+    const defaultAdmin: User = {
+      id: 'admin-01',
+      name: '管理员',
+      email: 'admin@fuhung.cn',
+      role: UserRole.ADMIN,
+      favorites: [],
+      isMarketingAuthorized: false
+    };
+    return saved ? JSON.parse(saved) : [defaultAdmin];
   });
 
   const [artworks, setArtworks] = useState<Artwork[]>(() => {
@@ -32,11 +48,24 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(currentUser));
   }, [currentUser]);
 
+  // 新增：持久化所有用户数据
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.ALL_USERS, JSON.stringify(allUsers));
+  }, [allUsers]);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.ARTWORKS, JSON.stringify(artworks));
   }, [artworks]);
 
-  const login = (user: User) => setCurrentUser(user);
+  // 修改登录/注册逻辑
+  const handleAuthSuccess = (user: User, isRegister: boolean) => {
+    setCurrentUser(user);
+    if (isRegister) {
+      // 如果是新注册，添加到用户列表
+      setAllUsers(prev => [...prev, user]);
+    }
+  };
+
   const logout = () => setCurrentUser(null);
   
   const toggleFavorite = (artworkId: string) => {
@@ -61,6 +90,11 @@ const App: React.FC = () => {
     setArtworks(prev => [artwork, ...prev]);
   };
 
+  // 新增：批量导入艺术品
+  const handleBatchImport = (newArtworks: Artwork[]) => {
+    setArtworks(prev => [...newArtworks, ...prev]);
+  };
+
   return (
     <HashRouter>
       <div className="min-h-screen flex flex-col">
@@ -82,9 +116,7 @@ const App: React.FC = () => {
               } 
             />
             
-            <Route path="/login" element={<Auth onAuthSuccess={login} />} />
-            
-            {/* 2. 添加协议页路由 */}
+            <Route path="/login" element={<Auth onAuthSuccess={handleAuthSuccess} />} />
             <Route path="/terms" element={<Terms />} />
             
             <Route 
@@ -102,9 +134,11 @@ const App: React.FC = () => {
                 currentUser?.role === UserRole.ADMIN 
                   ? <AdminDashboard 
                       artworks={artworks} 
+                      allUsers={allUsers} // 传递所有用户数据
                       onUpdate={updateArtwork} 
                       onDelete={deleteArtwork} 
                       onAdd={addArtwork}
+                      onBatchImport={handleBatchImport} // 传递批量导入函数
                     /> 
                   : <Navigate to="/login" />
               } 
